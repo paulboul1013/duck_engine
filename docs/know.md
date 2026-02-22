@@ -66,3 +66,54 @@
 - SDL2 用系統 apt（vcpkg 的 SDL2 需要 autoconf-archive）
 - glad/glm/stb 用 vcpkg
 - test_ecs 是純 CPU 測試，不依賴 OpenGL/SDL2，但需要 link Registry.cpp
+
+### GLOB_RECURSE 的陷阱
+- `file(GLOB_RECURSE SOURCES "src/*.cpp")` 在 CMake configure 階段**快取**檔案列表
+- **新增 .cpp 後只執行 `cmake --build build` 不夠**，連結器找不到新符號（undefined reference）
+- 必須重新執行 `cmake -B build -S .` 刷新 GLOB，再 `cmake --build build`
+- 替代方案：明確列出所有 .cpp（更保險，但維護成本高）
+
+## Game Loop 設計
+
+### Fixed Timestep（固定時間步）
+- 物理/邏輯在固定 1/60 秒的 tick 更新，渲染以可變頻率跟上
+- 使用 accumulator 模式：`accumulator += deltaTime`，每 >= FIXED_DT 消耗一次
+- 好處：不同幀率的機器物理行為完全一致
+
+### Spiral of Death 防護
+- 問題：某幀耗時過長（如卡頓），accumulator 暴增 → 下幀拚命追趕 → 更卡頓
+- 解決：`if (deltaTime > 0.25f) deltaTime = 0.25f;`（上限 4 FPS 的幀時間）
+- 超過就直接丟棄，讓遊戲「假裝時間只過了 0.25 秒」
+
+## Rendering 設計
+
+### 紋理 ID 間接引用（Texture ID Indirection）
+- `Sprite` 存 `uint32_t textureID`，不直接存 `Texture*`
+- 好處：紋理熱重載時指標可能移動，但 ID 永遠有效
+- `Engine` 持有 `m_textureStore`（unique_ptr，擁有生命週期）+ `m_texturePtrs`（raw ptr，供讀取）
+- ID=0 保留為無效值，從 1 開始分配
+
+### Z-Order 繪製順序
+- 數字小 = 先繪製（在下層）
+- 0: 地面/草地, 2: 靜態障礙物, 4: 角色/玩家
+- SpriteBatch 在 end() 時按 zOrder 排序後批次提交
+
+## 子系統設計原則
+
+### Tag Component 用於行為標記
+- `InputControlled` 空結構體：標記「這個 entity 受玩家控制」
+- MovementSystem 第一個 view `<Transform, RigidBody, InputControlled>` 只處理玩家
+- 第二個 view `<Transform, RigidBody>` 對所有物理物件套用速度/摩擦力
+- 好處：未來加敵人只需不加 InputControlled，邏輯自動分離
+
+### Diagonal Movement Normalization
+- 同時按 W+D 時 inputX=1, inputY=-1，合速度 = sqrt(2) ≈ 1.41 倍
+- 修正：`float len = sqrt(inputX*inputX + inputY*inputY); if (len > 0) { inputX/=len; inputY/=len; }`
+
+### Friction Dead Zone（摩擦力死區）
+- 每幀速度 *= friction（0.85），永遠不會精確等於 0，浪費 CPU
+- 解決：`if (abs(vx) < 0.1f) vx = 0.0f;`
+
+### 滑鼠朝向
+- `atan2(mouse.y - entity.y, mouse.x - entity.x)` 計算朝向角度
+- 回傳 [-π, π]，直接存入 Transform.rotation，由 SpriteBatch 用 cos/sin 旋轉
