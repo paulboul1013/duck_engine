@@ -28,3 +28,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     glad::glad
     glm::glm
 )
+
+# ECS 單元測試（不依賴 OpenGL/SDL2，純 CPU 邏輯）
+add_executable(test_ecs tests/test_ecs.cpp)
+target_include_directories(test_ecs PRIVATE ${CMAKE_SOURCE_DIR}/src)
