@@ -18,7 +18,7 @@ void MovementSystem::update(Registry& registry, const Input& input, float dt) {
         // 移動速度（像素/秒）
         // 為什麼用 400.0f？
         // 1280 寬的畫面，3.2 秒橫越螢幕，手感測試後的合適值
-        const float speed = 400.0f;
+        const float speed = 1500.0f;
 
         float inputX = 0.0f, inputY = 0.0f;
         if (input.isKeyDown(SDL_SCANCODE_W)) inputY -= 1.0f;  // Y 軸向上是負

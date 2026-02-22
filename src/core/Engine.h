@@ -6,6 +6,7 @@
 #include "ecs/Registry.h"
 #include "systems/MovementSystem.h"
 #include "systems/RenderSystem.h"
+#include "systems/WeaponSystem.h"
 #include <unordered_map>
 #include <memory>
 #include <cstdint>
@@ -50,6 +51,7 @@ private:
 
     MovementSystem m_movementSystem;
     RenderSystem   m_renderSystem;
+    WeaponSystem   m_weaponSystem;
 
     // 紋理資源管理
     std::unordered_map<uint32_t, std::unique_ptr<Texture>> m_textureStore;

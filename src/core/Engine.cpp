@@ -33,12 +33,14 @@ bool Engine::init() {
 
 void Engine::setupScene() {
     // 建立紋理（目前用程式產生的純色方塊代替真實 Sprite）
-    uint32_t duckID  = registerTexture(m_textureStore, m_texturePtrs, m_nextTextureID,
-                                       255, 200,   0, 255);  // 鴨子黃
-    uint32_t grassID = registerTexture(m_textureStore, m_texturePtrs, m_nextTextureID,
-                                        50, 150,  50, 255);  // 草地綠
-    uint32_t rockID  = registerTexture(m_textureStore, m_texturePtrs, m_nextTextureID,
-                                       120, 120, 120, 255);  // 石頭灰
+    uint32_t duckID   = registerTexture(m_textureStore, m_texturePtrs, m_nextTextureID,
+                                        255, 200,   0, 255);  // 鴨子黃
+    uint32_t grassID  = registerTexture(m_textureStore, m_texturePtrs, m_nextTextureID,
+                                         50, 150,  50, 255);  // 草地綠
+    uint32_t rockID   = registerTexture(m_textureStore, m_texturePtrs, m_nextTextureID,
+                                        120, 120, 120, 255);  // 石頭灰
+    uint32_t bulletID = registerTexture(m_textureStore, m_texturePtrs, m_nextTextureID,
+                                        255, 255, 255, 255);  // 白色（由 Sprite 色彩調變成紅色）
 
     // -------------------------------------------------------
     // 玩家鴨子
@@ -51,6 +53,7 @@ void Engine::setupScene() {
     m_registry.addComponent<Sprite>(player, duckID, 48.0f, 48.0f, 4, 1.0f, 1.0f, 1.0f, 1.0f);
     m_registry.addComponent<RigidBody>(player, 0.0f, 0.0f, 1.0f, 0.85f);
     m_registry.addComponent<InputControlled>(player);
+    m_registry.addComponent<Weapon>(player, bulletID, 900.0f, 0.1f, 0.0f, 2.0f, 10.0f);
 
     // -------------------------------------------------------
     // 靜態場景 — Z-Order 0：草地背景
@@ -118,6 +121,7 @@ void Engine::run() {
 
         while (accumulator >= FIXED_DT) {
             m_movementSystem.update(m_registry, m_input, FIXED_DT);
+            m_weaponSystem.update(m_registry, m_input, FIXED_DT);
             accumulator -= FIXED_DT;
         }
 

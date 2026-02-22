@@ -44,4 +44,29 @@ struct RigidBody {
 // 就能精確篩選出「受玩家控制的、有物理屬性的實體」
 struct InputControlled {};
 
+// 武器元件：描述槍枝屬性
+// bulletTextureID：子彈使用的紋理（存 ID 而非指標，熱重載安全）
+// bulletSpeed：子彈飛行速度（像素/秒）
+// fireRate：兩次射擊之間的最短間隔（秒）= 1/射速
+// cooldown：目前的冷卻剩餘時間（每幀由 WeaponSystem 遞減）
+// bulletLifetime：子彈飛行幾秒後消失
+struct Weapon {
+    uint32_t bulletTextureID = 0;
+    float bulletSpeed   = 900.0f;
+    float fireRate      = 0.1f;   // 0.1s = 10 發/秒
+    float cooldown      = 0.0f;
+    float bulletLifetime = 2.0f;
+    float bulletSize    = 10.0f;
+};
+
+// 子彈元件：子彈自己帶速度而非依賴 RigidBody
+// 為什麼不用 RigidBody？子彈不需要摩擦力，應該直線等速飛行
+// 用獨立元件讓 WeaponSystem 只需要 view<Transform, Bullet>，
+// 不會誤處理到有 RigidBody 的玩家/敵人
+struct Bullet {
+    float vx = 0.0f;
+    float vy = 0.0f;
+    float lifetime = 2.0f;  // 剩餘存活時間（秒）
+};
+
 } // namespace duck
