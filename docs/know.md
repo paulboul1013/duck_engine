@@ -42,6 +42,22 @@
 - `view<T1, T2, ...>()` 用 C++17 fold expression 展開成多個 hasComponent 檢查
 - view 遍歷時複製 entities 列表，防止 callback 中修改 pool 導致 UB
 
+## Input 輸入系統
+
+### Polling vs Event 模式
+- **Polling (`isKeyDown`)**: 鍵是否被按住？每幀回傳 true → 用於移動、連發
+- **Event (`isKeyPressed`)**: 鍵是否本幀剛按下？只回傳一次 true → 用於換彈、互動
+- 實作：`m_keysDown`（持續追蹤）vs `m_keysPressed`（每幀清空）
+
+### SDL_Scancode vs SDL_Keycode
+- Scancode = 物理位置（遊戲用這個，不受鍵盤佈局影響）
+- Keycode = 字元輸出（法語 AZERTY 會讓 WASD 錯位）
+
+### event.key.repeat 過濾
+- 長按時 OS 會自動重複觸發 KEYDOWN
+- 不過濾的話 isKeyPressed() 長按時會週期性觸發 → bug
+- 用 `if (!event.key.repeat)` 只取第一次按下
+
 ### 踩坑紀錄
 - **GCC vs Clang alias template 差異**：`template<typename First, typename...> using FirstType = First;` 配合 `FirstType<Ts...>` 在 GCC 會報錯（pack expansion argument for non-pack parameter），改用 `viewImpl<First, Rest...>` 拆開參數包解決
 - test_ecs 需要 link Registry.cpp（因為有非模板成員函式），CMake 中要明確列出
