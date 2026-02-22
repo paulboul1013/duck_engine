@@ -36,7 +36,17 @@
 - 所有行為由 System 實作
 - 好處：可序列化、可 memcpy、無 vtable 開銷
 
+### Registry — ECS 的大腦
+- `create()` 回傳遞增 EntityID，`destroy()` 清除所有元件並移除 entity
+- 用 `std::type_index(typeid(T))` 作為 pool 的 key，不需手動編號
+- `view<T1, T2, ...>()` 用 C++17 fold expression 展開成多個 hasComponent 檢查
+- view 遍歷時複製 entities 列表，防止 callback 中修改 pool 導致 UB
+
+### 踩坑紀錄
+- **GCC vs Clang alias template 差異**：`template<typename First, typename...> using FirstType = First;` 配合 `FirstType<Ts...>` 在 GCC 會報錯（pack expansion argument for non-pack parameter），改用 `viewImpl<First, Rest...>` 拆開參數包解決
+- test_ecs 需要 link Registry.cpp（因為有非模板成員函式），CMake 中要明確列出
+
 ## 建置系統
 - SDL2 用系統 apt（vcpkg 的 SDL2 需要 autoconf-archive）
 - glad/glm/stb 用 vcpkg
-- test_ecs 是純 CPU 測試，不依賴 OpenGL/SDL2
+- test_ecs 是純 CPU 測試，不依賴 OpenGL/SDL2，但需要 link Registry.cpp

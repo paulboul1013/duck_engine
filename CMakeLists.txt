@@ -30,5 +30,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 )
 
 # ECS 單元測試（不依賴 OpenGL/SDL2，純 CPU 邏輯）
-add_executable(test_ecs tests/test_ecs.cpp)
+# 需要 link Registry.cpp 因為它有非模板成員函式（create/destroy/alive）
+add_executable(test_ecs tests/test_ecs.cpp src/ecs/Registry.cpp)
 target_include_directories(test_ecs PRIVATE ${CMAKE_SOURCE_DIR}/src)
