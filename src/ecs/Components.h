@@ -67,6 +67,23 @@ struct Bullet {
     float vx = 0.0f;
     float vy = 0.0f;
     float lifetime = 2.0f;  // 剩餘存活時間（秒）
+    float radius   = 5.0f;  // 子彈碰撞半徑（像素）
+};
+
+// 碰撞元件：描述實體的碰撞形狀
+// Circle：角色/圓柱障礙，旋轉不影響形狀，計算最快
+// AABB：軸對齊矩形，最適合方形牆壁/箱子
+struct Collider {
+    enum class Type { Circle, AABB };
+    Type type = Type::Circle;
+
+    float halfW  = 16.0f;  // AABB 半寬（中心到右邊緣）
+    float halfH  = 16.0f;  // AABB 半高（中心到下邊緣）
+    float radius = 16.0f;  // Circle 半徑
+
+    // isSolid=true：碰到後會被推開（牆壁、玩家、箱子）
+    // isSolid=false：穿透觸發（未來 Trigger 區域用）
+    bool isSolid = true;
 };
 
 } // namespace duck
