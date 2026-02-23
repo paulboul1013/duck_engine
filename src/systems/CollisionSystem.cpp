@@ -106,7 +106,7 @@ void CollisionSystem::update(Registry& registry, float /*dt*/) {
             auto& stf = registry.getComponent<Transform>(solidID);
             auto& scol = registry.getComponent<Collider>(solidID);
 
-            float nx, ny, depth;
+            float nx = 0.0f, ny = 0.0f, depth = 0.0f;
             bool hit = false;
 
             if (scol.type == Collider::Type::AABB) {
