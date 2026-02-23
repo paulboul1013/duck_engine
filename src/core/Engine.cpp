@@ -54,6 +54,7 @@ void Engine::setupScene() {
     m_registry.addComponent<RigidBody>(player, 0.0f, 0.0f, 1.0f, 0.85f);
     m_registry.addComponent<InputControlled>(player);
     m_registry.addComponent<Weapon>(player, bulletID, 900.0f, 0.1f, 0.0f, 2.0f, 10.0f);
+    m_registry.addComponent<Collider>(player, Collider::Type::Circle, 24.0f, 24.0f, 24.0f, true);
 
     // -------------------------------------------------------
     // 靜態場景 — Z-Order 0：草地背景
@@ -70,10 +71,12 @@ void Engine::setupScene() {
     auto rock1 = m_registry.create();
     m_registry.addComponent<Transform>(rock1, 300.0f, 300.0f, 0.3f, 1.0f, 1.0f);
     m_registry.addComponent<Sprite>(rock1, rockID, 80.0f, 80.0f, 2, 1.0f, 1.0f, 1.0f, 1.0f);
+    m_registry.addComponent<Collider>(rock1, Collider::Type::AABB, 40.0f, 40.0f, 40.0f, true);
 
     auto rock2 = m_registry.create();
     m_registry.addComponent<Transform>(rock2, 900.0f, 250.0f, -0.5f, 1.0f, 1.0f);
     m_registry.addComponent<Sprite>(rock2, rockID, 60.0f, 60.0f, 2, 1.0f, 1.0f, 1.0f, 1.0f);
+    m_registry.addComponent<Collider>(rock2, Collider::Type::AABB, 30.0f, 30.0f, 30.0f, true);
 }
 
 void Engine::run() {
@@ -122,6 +125,7 @@ void Engine::run() {
         while (accumulator >= FIXED_DT) {
             m_movementSystem.update(m_registry, m_input, FIXED_DT);
             m_weaponSystem.update(m_registry, m_input, FIXED_DT);
+            m_collisionSystem.update(m_registry, FIXED_DT);
             accumulator -= FIXED_DT;
         }
 
