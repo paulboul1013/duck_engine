@@ -109,9 +109,17 @@ inline bool circleVsAabb(
         outDx = dx / dist;
         outDy = dy / dist;
     } else {
-        // 圓心在 AABB 內部：往最近邊緣推
-        outDx = (cx < bx) ? -1.0f : 1.0f;
-        outDy = 0.0f;
+        // 圓心在 AABB 內部：比較四邊距離，沿最近邊推出（最小穿透原則）
+        float dLeft  = cx - (bx - bhw);  // 到左邊距離
+        float dRight = (bx + bhw) - cx;  // 到右邊距離
+        float dUp    = cy - (by - bhh);  // 到上邊距離
+        float dDown  = (by + bhh) - cy;  // 到下邊距離
+        float minDist = dLeft;
+        outDx = -1.0f; outDy = 0.0f;
+        if (dRight < minDist) { minDist = dRight; outDx =  1.0f; outDy = 0.0f; }
+        if (dUp    < minDist) { minDist = dUp;    outDx =  0.0f; outDy = -1.0f; }
+        if (dDown  < minDist) { minDist = dDown;  outDx =  0.0f; outDy =  1.0f; }
+        outDepth = cr + minDist;  // 圓心在內部：穿透 = 半徑 + 到邊距離
     }
     return true;
 }
