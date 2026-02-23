@@ -73,6 +73,7 @@ struct Bullet {
 // 碰撞元件：描述實體的碰撞形狀
 // Circle：角色/圓柱障礙，旋轉不影響形狀，計算最快
 // AABB：軸對齊矩形，最適合方形牆壁/箱子
+// 注意：因含 enum class，Collider 不是嚴格 POD，不可直接 memcpy 序列化。
 struct Collider {
     enum class Type { Circle, AABB };
     Type type = Type::Circle;
