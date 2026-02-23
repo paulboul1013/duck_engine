@@ -33,3 +33,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 # 需要 link Registry.cpp 因為它有非模板成員函式（create/destroy/alive）
 add_executable(test_ecs tests/test_ecs.cpp src/ecs/Registry.cpp)
 target_include_directories(test_ecs PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+# Collision 幾何函式單元測試（header-only，不需 link .cpp）
+add_executable(test_collision tests/test_collision.cpp)
+target_include_directories(test_collision PRIVATE ${CMAKE_SOURCE_DIR}/src)
