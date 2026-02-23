@@ -26,6 +26,12 @@ bool Engine::init() {
 
     setupScene();
 
+    // 建立 DebugDraw 用的 1x1 白色紋理
+    uint32_t debugTexID = registerTexture(m_textureStore, m_texturePtrs, m_nextTextureID,
+                                          255, 255, 255, 255);
+    m_renderSystem.setDebugTexID(debugTexID);
+    std::printf("F1：切換碰撞框 DebugDraw\n");
+
     std::printf("=== Engine 初始化完成 ===\n");
     std::printf("WASD 移動，滑鼠瞄準，ESC 退出\n");
     return true;
@@ -107,6 +113,12 @@ void Engine::run() {
         m_input.update();
 
         if (m_input.isKeyPressed(SDL_SCANCODE_ESCAPE)) break;
+
+        if (m_input.isKeyPressed(SDL_SCANCODE_F1)) {
+            m_debugMode = !m_debugMode;
+            m_renderSystem.setDebugMode(m_debugMode);
+            std::printf("DebugDraw: %s\n", m_debugMode ? "ON" : "OFF");
+        }
 
         // -------------------------------------------------------
         // Fixed Timestep 邏輯更新（60Hz）

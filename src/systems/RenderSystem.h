@@ -26,11 +26,26 @@ class Texture;
 // - 紋理由 Engine 統一管理（textureStore），可以熱重載
 // - RenderSystem 只需要一個「ID → Texture*」的查詢表
 //
+// DebugDraw：
+// 按 F1 可切換碰撞框可視化
+// - 有 InputControlled 的 entity（玩家）顯示藍色框
+// - 其他有 Collider 的 entity 顯示紅色框
+// - 使用 1x1 白色紋理 + 色彩調變繪製邊框線條
+//
 class RenderSystem {
 public:
+    // 主繪製（原本的）
     void render(Registry& registry,
                 Renderer& renderer,
                 const std::unordered_map<uint32_t, Texture*>& textures);
+
+    // Debug 模式控制
+    void setDebugMode(bool enabled) { m_debugMode = enabled; }
+    void setDebugTexID(uint32_t id)  { m_debugTexID = id; }
+
+private:
+    bool     m_debugMode  = false;
+    uint32_t m_debugTexID = 0;
 };
 
 } // namespace duck

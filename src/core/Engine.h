@@ -60,6 +60,9 @@ private:
     std::unordered_map<uint32_t, Texture*>                  m_texturePtrs;
     uint32_t m_nextTextureID = 1;  // 從 1 開始，0 保留為「無效 ID」
 
+    // DebugDraw 狀態（F1 切換）
+    bool m_debugMode = false;
+
     // Fixed Timestep 常數：1/60 秒
     // 為什麼用 constexpr float 而不是 #define？
     // - 有型別安全，不會意外做整數除法
