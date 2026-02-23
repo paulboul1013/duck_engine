@@ -101,6 +101,33 @@ void test_circle_aabb_corner_miss() {
     std::printf("  [PASS] test_circle_aabb_corner_miss\n");
 }
 
+void test_circle_inside_aabb_left_edge() {
+    float dx, dy, depth;
+    // 圓心在 AABB 內部，接近左邊緣：cx=2, AABB 中心(20,0) hw=hh=20 → AABB 從 x=0 到 x=40
+    // dLeft=2, dRight=38, dUp=20, dDown=20 → 左邊最近
+    // 應往左推（x 減少），outDx 應使 tfA.x -= outDx*depth 導致 x 減少 → outDx > 0
+    bool hit = duck::circleVsAabb(2, 0, 15, 20, 0, 20, 20, dx, dy, depth);
+    assert(hit);
+    // outDx 應 > 0（往左推）、outDy 應 = 0
+    assert(dx > 0.5f);
+    assert(approx(dy, 0.0f));
+    // depth = radius + dLeft = 15 + 2 = 17
+    assert(approx(depth, 17.0f));
+    std::printf("  [PASS] test_circle_inside_aabb_left_edge\n");
+}
+
+void test_circle_inside_aabb_right_edge() {
+    float dx, dy, depth;
+    // 圓心在 AABB 內部，接近右邊緣：cx=38, AABB 中心(20,0) hw=hh=20 → AABB 從 x=0 到 x=40
+    // dRight=2（最小），往右推 → outDx < 0（x 增加）
+    bool hit = duck::circleVsAabb(38, 0, 15, 20, 0, 20, 20, dx, dy, depth);
+    assert(hit);
+    assert(dx < -0.5f);  // outDx < 0 → 往右推
+    assert(approx(dy, 0.0f));
+    assert(approx(depth, 17.0f));  // radius + dRight = 15 + 2
+    std::printf("  [PASS] test_circle_inside_aabb_right_edge\n");
+}
+
 // ─────────────────────────────────────────
 // main
 // ─────────────────────────────────────────
@@ -122,6 +149,8 @@ int main() {
     test_circle_aabb_no_collision();
     test_circle_aabb_face_collision();
     test_circle_aabb_corner_miss();
+    test_circle_inside_aabb_left_edge();
+    test_circle_inside_aabb_right_edge();
 
     std::printf("\n=== All tests passed! ===\n");
     return 0;

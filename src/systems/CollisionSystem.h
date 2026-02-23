@@ -114,11 +114,13 @@ inline bool circleVsAabb(
         float dRight = (bx + bhw) - cx;  // 到右邊距離
         float dUp    = cy - (by - bhh);  // 到上邊距離
         float dDown  = (by + bhh) - cy;  // 到下邊距離
+        // 方向慣例：outDx 使得 tfA.x -= outDx*depth 把圓推往正確方向
+        // 「推左」= x 減少 = outDx > 0；「推右」= x 增加 = outDx < 0（同外部分支慣例）
         float minDist = dLeft;
-        outDx = -1.0f; outDy = 0.0f;
-        if (dRight < minDist) { minDist = dRight; outDx =  1.0f; outDy = 0.0f; }
-        if (dUp    < minDist) { minDist = dUp;    outDx =  0.0f; outDy = -1.0f; }
-        if (dDown  < minDist) { minDist = dDown;  outDx =  0.0f; outDy =  1.0f; }
+        outDx =  1.0f; outDy = 0.0f;   // dLeft 最小：往左推（x 減少）
+        if (dRight < minDist) { minDist = dRight; outDx = -1.0f; outDy =  0.0f; }  // 往右推
+        if (dUp    < minDist) { minDist = dUp;    outDx =  0.0f; outDy =  1.0f; }  // 往上推（y 減少）
+        if (dDown  < minDist) { minDist = dDown;  outDx =  0.0f; outDy = -1.0f; }  // 往下推（y 增加）
         outDepth = cr + minDist;  // 圓心在內部：穿透 = 半徑 + 到邊距離
     }
     return true;
