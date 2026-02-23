@@ -117,3 +117,37 @@
 ### 滑鼠朝向
 - `atan2(mouse.y - entity.y, mouse.x - entity.x)` 計算朝向角度
 - 回傳 [-π, π]，直接存入 Transform.rotation，由 SpriteBatch 用 cos/sin 旋轉
+
+## 碰撞系統（Phase 2）
+
+### 幾何函式設計
+- **circleVsCircle**：距離 = sqrt(dx²+dy²)，穿透 = r1+r2-dist，法向量 = (dx,dy)/dist，方向**從 A 指向 B**
+- **aabbVsAabb**：計算 overlapX/Y，選最小軸推生（Minimum Penetration Axis），不會對角線卡角
+- **circleVsAabb**：Clamped Point 演算法，nearX = clamp(cx, bx-hw, bx+hw)，距離到最近點
+
+### circleVsAabb 方向慣例（踩坑紀錄）
+- 輸出 `(outDx, outDy)` 方向為「從圓心指向 AABB 最近點」= 與 circleVsCircle 的「從 A 指向 B」慣例一致
+- 碰撞回應：`tfA -= nx*depth`（圓往 -nx 推開），`tfB += nx*depth`（AABB 往 +nx 推開）✓
+- **bug 陷阱**：圓心在 AABB 內部時，分支方向必須**相反於「指向最近邊」**，才能讓 `tfA -= nx*depth` 推圓出去
+  - dLeft 最小（圓近左邊）→ 推左（x 減少）→ 需要 `outDx = +1.0f`（不是 -1.0f）
+  - 所有四個邊的方向都與直覺相反，必須推導驗證而非憑感覺
+
+### 靜態 vs 動態判斷
+- 無 RigidBody = 靜態障礙物（岩石、牆壁），有 RigidBody = 動態（玩家、敵人）
+- 兩動：各推一半；一靜一動：只推動態方；兩靜：不處理
+
+### Bullet vs Solid 設計
+- 子彈不加 Collider 元件，由 CollisionSystem 單獨用 `Bullet.radius` 做距離判斷
+- 原因：子彈加 Collider 會讓 Solid vs Solid 迴圈多跑不必要比對
+- 跳過 InputControlled（玩家），Phase 2 不做玩家受傷
+- 待刪除 entity 收集進 `toDestroy` vector，在 view 迴圈外統一 destroy（避免迭代時修改 pool）
+
+### DebugDraw 模式
+- `F1` 切換，用 1x1 白色紋理畫四條 2px 邊線模擬碰撞框輪廓
+- Z-Order=8（在 UI 上面，確保可見）；藍=玩家，紅=固體
+- Early return：`if (!m_debugMode) return;` 確保非 debug 模式零開銷
+
+### header-only 幾何函式優點
+- `inline` 函式放 .h：方便單元測試直接 include（不需 link .cpp）
+- 函式短（10-20 行），inline 不造成程式碼膨脹
+- 編譯器可能直接展開，減少函式呼叫開銷
