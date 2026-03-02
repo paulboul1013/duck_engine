@@ -38,12 +38,22 @@ namespace duck {
 
 class Engine {
 public:
+    struct Config {
+        bool stressMode = false;
+    };
+
+    Engine();
+    explicit Engine(Config config);
+
     bool init();
     void run();
     void shutdown();
 
 private:
     void setupScene();
+    void setupStandardScene();
+    void setupStressScene();
+    void printProfilerReport(double elapsedSeconds);
 
     // 子系統（宣告順序 = 初始化順序 = 解構相反順序）
     Window   m_window;
@@ -71,6 +81,19 @@ private:
 
     // DebugDraw 狀態（F1 切換）
     bool m_debugMode = false;
+    bool m_stressMode = false;
+    bool m_infinitePlayerHealth = false;
+
+    // 簡易 profiler：每秒輸出一次平均耗時與場景量級
+    double m_profileAccumMovementMs = 0.0;
+    double m_profileAccumWeaponMs = 0.0;
+    double m_profileAccumEnemyMs = 0.0;
+    double m_profileAccumCollisionMs = 0.0;
+    double m_profileAccumRenderMs = 0.0;
+    double m_profileAccumFrameMs = 0.0;
+    double m_profileElapsedSeconds = 0.0;
+    int m_profileFrameCount = 0;
+    int m_profileFixedStepCount = 0;
 
     // Fixed Timestep 常數：1/60 秒
     // 為什麼用 constexpr float 而不是 #define？

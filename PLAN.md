@@ -202,12 +202,12 @@ DuckEngine/
 **目前仍缺的關鍵功能**
 * **內容深度仍低：** 雖然已有戰鬥閉環，但目前敵人仍是單一近戰 archetype，沒有遠程攻擊、不同敵人種類或掉落物。
 * **內容資料化：** 尚未接入 JSON 地圖、資產目錄、掉落物、背包、撤離點與局外經濟。
-* **效能優化仍待持續觀察：** 雖然碰撞 broad phase 已改成 Quadtree，但還沒有實際 profiler 數據，也尚未針對大量子彈或大量敵人做壓測。
+* **效能優化仍待持續觀察：** 已有 `--stress` 壓測場景與每秒 profiler 輸出，但目前只看到 frame/system 平均耗時，還沒有更細的 Quadtree 候選配對統計與長時間 benchmark。
 * **腳本與存檔：** Lua 綁定、JSON 存讀檔尚未開始。
 
 **建議下一步**
 1. 補強敵人攻擊表現，例如攻擊前搖、受擊反饋、死亡淡出或掉落物。
-2. 對 Quadtree 版本做 profiler / 壓測，確認候選配對數是否明顯下降。
+2. 補更細的 profiler 指標，例如 Quadtree 候選 pair 數、narrow phase pair 數、bullet query 候選數。
 3. 開始把地圖、敵人配置與資源改成 JSON / 資料驅動。
 
 **目前里程碑判斷**

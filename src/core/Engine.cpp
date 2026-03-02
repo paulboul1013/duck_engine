@@ -2,6 +2,7 @@
 #include "ecs/Components.h"
 #include <SDL2/SDL.h>
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 
 namespace duck {
@@ -53,8 +54,18 @@ static uint32_t registerRoundedRectGradientTexture(
     return id;
 }
 
+Engine::Engine()
+    : Engine(Config{}) {}
+
+Engine::Engine(Config config)
+    : m_stressMode(config.stressMode),
+      m_infinitePlayerHealth(config.stressMode) {}
+
 bool Engine::init() {
-    if (!m_window.init("Duck Engine - Phase 2", 1280, 720)) return false;
+    const char* title = m_stressMode
+        ? "Duck Engine - Stress Scene"
+        : "Duck Engine - Phase 2";
+    if (!m_window.init(title, 1280, 720)) return false;
     if (!m_renderer.init(1280, 720)) return false;
 
     setupScene();
@@ -68,6 +79,9 @@ bool Engine::init() {
     m_uiGradientTexID = registerRoundedRectGradientTexture(
         m_textureStore, m_texturePtrs, m_nextTextureID, 96, 24, 10.0f);
     std::printf("F1：切換碰撞框 DebugDraw\n");
+    if (m_stressMode) {
+        std::printf("Stress mode: ON（大量敵人/障礙物 + 每秒 profiler）\n");
+    }
 
     std::printf("=== Engine 初始化完成 ===\n");
     std::printf("WASD 移動，滑鼠瞄準，左鍵射擊，ESC 退出\n");
@@ -75,6 +89,14 @@ bool Engine::init() {
 }
 
 void Engine::setupScene() {
+    if (m_stressMode) {
+        setupStressScene();
+    } else {
+        setupStandardScene();
+    }
+}
+
+void Engine::setupStandardScene() {
     // 建立紋理（目前用程式產生的純色方塊代替真實 Sprite）
     uint32_t duckID   = registerTexture(m_textureStore, m_texturePtrs, m_nextTextureID,
                                         255, 200,   0, 255);  // 鴨子黃
@@ -142,6 +164,122 @@ void Engine::setupScene() {
     m_registry.addComponent<Enemy>(enemy2);
 }
 
+void Engine::setupStressScene() {
+    uint32_t duckID   = registerTexture(m_textureStore, m_texturePtrs, m_nextTextureID,
+                                        255, 200,   0, 255);
+    uint32_t grassID  = registerTexture(m_textureStore, m_texturePtrs, m_nextTextureID,
+                                         50, 150,  50, 255);
+    uint32_t rockID   = registerTexture(m_textureStore, m_texturePtrs, m_nextTextureID,
+                                        120, 120, 120, 255);
+    uint32_t bulletID = registerTexture(m_textureStore, m_texturePtrs, m_nextTextureID,
+                                        255, 255, 255, 255);
+
+    auto ground = m_registry.create();
+    m_registry.addComponent<Transform>(ground, 640.0f, 360.0f, 0.0f, 1.0f, 1.0f);
+    m_registry.addComponent<Sprite>(ground, grassID, 1280.0f, 720.0f, 0, 1.0f, 1.0f, 1.0f, 1.0f);
+
+    auto player = m_registry.create();
+    m_registry.addComponent<Transform>(player, 640.0f, 360.0f, 0.0f, 1.0f, 1.0f);
+    m_registry.addComponent<Sprite>(player, duckID, 48.0f, 48.0f, 4, 1.0f, 1.0f, 1.0f, 1.0f);
+    m_registry.addComponent<RigidBody>(player, 0.0f, 0.0f, 1.0f, 0.85f);
+    m_registry.addComponent<InputControlled>(player);
+    m_registry.addComponent<Weapon>(player, bulletID, 900.0f, 0.06f, 0.0f, 2.0f, 10.0f, 1.0f);
+    m_registry.addComponent<Collider>(player, Collider::Type::Circle, 24.0f, 24.0f, 24.0f, true);
+    m_registry.addComponent<Health>(player, 10.0f, 10.0f);
+
+    // 用規則網格生成障礙物，讓 Quadtree broad phase 有明顯切割空間
+    for (int row = 0; row < 7; ++row) {
+        for (int col = 0; col < 10; ++col) {
+            if ((row + col) % 3 == 0) continue;
+            auto rock = m_registry.create();
+            float x = 110.0f + static_cast<float>(col) * 115.0f;
+            float y = 90.0f + static_cast<float>(row) * 78.0f;
+            m_registry.addComponent<Transform>(rock, x, y, 0.0f, 1.0f, 1.0f);
+            m_registry.addComponent<Sprite>(rock, rockID, 44.0f, 44.0f, 2, 1.0f, 1.0f, 1.0f, 1.0f);
+            m_registry.addComponent<Collider>(rock, Collider::Type::AABB, 22.0f, 22.0f, 22.0f, true);
+        }
+    }
+
+    // 兩圈敵人，讓碰撞、AI、Quadtree 都有壓力
+    const int innerRingCount = 24;
+    const int outerRingCount = 40;
+    for (int i = 0; i < innerRingCount + outerRingCount; ++i) {
+        bool outer = i >= innerRingCount;
+        int ringIndex = outer ? i - innerRingCount : i;
+        int ringCount = outer ? outerRingCount : innerRingCount;
+        float radius = outer ? 290.0f : 170.0f;
+        float angle = (static_cast<float>(ringIndex) / static_cast<float>(ringCount)) * 6.2831853f;
+
+        auto enemy = m_registry.create();
+        float x = 640.0f + std::cos(angle) * radius;
+        float y = 360.0f + std::sin(angle) * radius;
+        m_registry.addComponent<Transform>(enemy, x, y, 0.0f, 1.0f, 1.0f);
+        m_registry.addComponent<Sprite>(enemy, duckID, 40.0f, 40.0f, 4, 0.85f, 0.2f, 0.2f, 1.0f);
+        m_registry.addComponent<RigidBody>(enemy, 0.0f, 0.0f, 1.0f, 0.88f);
+        m_registry.addComponent<Collider>(enemy, Collider::Type::Circle, 19.0f, 19.0f, 19.0f, true);
+        m_registry.addComponent<Health>(enemy, outer ? 4.0f : 3.0f, outer ? 4.0f : 3.0f);
+
+        Enemy enemyData;
+        enemyData.detectRange = outer ? 420.0f : 300.0f;
+        enemyData.attackRange = 52.0f;
+        enemyData.moveAcceleration = outer ? 980.0f : 1180.0f;
+        enemyData.patrolRadius = outer ? 70.0f : 48.0f;
+        enemyData.patrolAngle = angle;
+        m_registry.addComponent<Enemy>(enemy, enemyData);
+    }
+}
+
+void Engine::printProfilerReport(double elapsedSeconds) {
+    if (m_profileFrameCount <= 0) return;
+
+    int enemyCount = 0;
+    int bulletCount = 0;
+    int solidCount = 0;
+
+    m_registry.view<Enemy>([&](EntityID) { ++enemyCount; });
+    m_registry.view<Bullet>([&](EntityID) { ++bulletCount; });
+    m_registry.view<Collider>([&](EntityID entity) {
+        if (m_registry.getComponent<Collider>(entity).isSolid) ++solidCount;
+    });
+
+    double avgFrameMs = m_profileAccumFrameMs / static_cast<double>(m_profileFrameCount);
+    double avgRenderMs = m_profileAccumRenderMs / static_cast<double>(m_profileFrameCount);
+    double fixedStepsPerFrame = m_profileFrameCount > 0
+        ? static_cast<double>(m_profileFixedStepCount) / static_cast<double>(m_profileFrameCount)
+        : 0.0;
+
+    double avgEnemyMs = m_profileFixedStepCount > 0
+        ? m_profileAccumEnemyMs / static_cast<double>(m_profileFixedStepCount) : 0.0;
+    double avgMoveMs = m_profileFixedStepCount > 0
+        ? m_profileAccumMovementMs / static_cast<double>(m_profileFixedStepCount) : 0.0;
+    double avgWeaponMs = m_profileFixedStepCount > 0
+        ? m_profileAccumWeaponMs / static_cast<double>(m_profileFixedStepCount) : 0.0;
+    double avgCollisionMs = m_profileFixedStepCount > 0
+        ? m_profileAccumCollisionMs / static_cast<double>(m_profileFixedStepCount) : 0.0;
+
+    double fps = elapsedSeconds > 0.0
+        ? static_cast<double>(m_profileFrameCount) / elapsedSeconds : 0.0;
+
+    std::printf(
+        "[profiler] fps=%.1f frame=%.3fms render=%.3fms fixed/frame=%.2f "
+        "enemy=%.3fms move=%.3fms weapon=%.3fms collision=%.3fms "
+        "enemies=%d bullets=%d solids=%d\n",
+        fps, avgFrameMs, avgRenderMs, fixedStepsPerFrame,
+        avgEnemyMs, avgMoveMs, avgWeaponMs, avgCollisionMs,
+        enemyCount, bulletCount, solidCount
+    );
+
+    m_profileAccumMovementMs = 0.0;
+    m_profileAccumWeaponMs = 0.0;
+    m_profileAccumEnemyMs = 0.0;
+    m_profileAccumCollisionMs = 0.0;
+    m_profileAccumRenderMs = 0.0;
+    m_profileAccumFrameMs = 0.0;
+    m_profileElapsedSeconds = 0.0;
+    m_profileFrameCount = 0;
+    m_profileFixedStepCount = 0;
+}
+
 void Engine::run() {
     Uint64 lastTime = SDL_GetPerformanceCounter();
     float  accumulator = 0.0f;
@@ -152,6 +290,7 @@ void Engine::run() {
         // -------------------------------------------------------
         // 計算 deltaTime（可變時間步）
         // -------------------------------------------------------
+        Uint64 frameBegin = SDL_GetPerformanceCounter();
         Uint64 currentTime = SDL_GetPerformanceCounter();
         float deltaTime = static_cast<float>(currentTime - lastTime) / static_cast<float>(freq);
         lastTime = currentTime;
@@ -192,15 +331,30 @@ void Engine::run() {
         accumulator += deltaTime;
 
         while (accumulator >= FIXED_DT) {
+            Uint64 t0 = SDL_GetPerformanceCounter();
             m_enemySystem.update(m_registry, FIXED_DT);
+            Uint64 t1 = SDL_GetPerformanceCounter();
             m_movementSystem.update(m_registry, m_input, FIXED_DT);
+            Uint64 t2 = SDL_GetPerformanceCounter();
             m_weaponSystem.update(m_registry, m_input, FIXED_DT);
+            Uint64 t3 = SDL_GetPerformanceCounter();
             m_collisionSystem.update(m_registry, FIXED_DT);
+            Uint64 t4 = SDL_GetPerformanceCounter();
+
+            double counterToMs = 1000.0 / static_cast<double>(freq);
+            m_profileAccumEnemyMs += static_cast<double>(t1 - t0) * counterToMs;
+            m_profileAccumMovementMs += static_cast<double>(t2 - t1) * counterToMs;
+            m_profileAccumWeaponMs += static_cast<double>(t3 - t2) * counterToMs;
+            m_profileAccumCollisionMs += static_cast<double>(t4 - t3) * counterToMs;
+            ++m_profileFixedStepCount;
 
             bool playerDead = false;
             m_registry.view<Health, InputControlled>([&](EntityID entity) {
                 (void)entity;
                 auto& health = m_registry.getComponent<Health>(entity);
+                if (m_infinitePlayerHealth) {
+                    health.currentHP = health.maxHP;
+                }
                 if (health.currentHP <= 0.0f) {
                     playerDead = true;
                 }
@@ -219,6 +373,7 @@ void Engine::run() {
         // 渲染不需要固定步長，以最快速度渲染即可
         // V-Sync 在 Window::init() 中已設定（SDL_GL_SetSwapInterval(1)）
         m_renderer.clear({0.15f, 0.15f, 0.2f, 1.0f});  // 深藍灰背景
+        Uint64 renderBegin = SDL_GetPerformanceCounter();
         m_renderer.begin();
         m_renderSystem.render(m_registry, m_renderer, m_texturePtrs);
 
@@ -319,8 +474,21 @@ void Engine::run() {
             }
         }
         m_renderer.end();
+        Uint64 renderEnd = SDL_GetPerformanceCounter();
+
+        double counterToMs = 1000.0 / static_cast<double>(freq);
+        m_profileAccumRenderMs += static_cast<double>(renderEnd - renderBegin) * counterToMs;
 
         m_window.swapBuffers();
+
+        Uint64 frameEnd = SDL_GetPerformanceCounter();
+        m_profileAccumFrameMs += static_cast<double>(frameEnd - frameBegin) * counterToMs;
+        m_profileElapsedSeconds += static_cast<double>(frameEnd - frameBegin) / static_cast<double>(freq);
+        ++m_profileFrameCount;
+
+        if (m_profileElapsedSeconds >= 1.0) {
+            printProfilerReport(m_profileElapsedSeconds);
+        }
     }
 }
 
