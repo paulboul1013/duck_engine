@@ -151,3 +151,31 @@
 - `inline` 函式放 .h：方便單元測試直接 include（不需 link .cpp）
 - 函式短（10-20 行），inline 不造成程式碼膨脹
 - 編譯器可能直接展開，減少函式呼叫開銷
+
+## 目前專案盤點（更新於 2026-03-02）
+
+### 目前已經落地的內容
+- **引擎骨架完整可跑**：`main.cpp -> Engine::init() -> run() -> shutdown()` 已串起來，具備 SDL2 視窗、OpenGL context、Fixed Timestep、V-Sync。
+- **ECS 已可支撐小型遊戲原型**：`Registry`、`ComponentPool`、`view<...>()`、entity destroy 流程都已完成，且有 `tests/test_ecs.cpp` 驗證。
+- **輸入系統可支援遊玩**：WASD、滑鼠位置、滑鼠按鍵、單幀 key press 都已具備。
+- **渲染主路徑可用**：`Renderer + Shader + SpriteBatch + RenderSystem` 已可畫 sprite，並依 `zOrder` 排序。
+- **玩家 sandbox 可操作**：玩家能移動、朝滑鼠旋轉、左鍵連發子彈。
+- **碰撞核心可用**：玩家會和石頭互推，子彈打到固體會消失，F1 可顯示碰撞框 DebugDraw。
+
+### 目前還沒完成的部分
+- **沒有敵人實體**：目前場景只有玩家、地面、石頭、子彈，還沒有追逐玩家的敵人。
+- **沒有 Health / Damage 閉環**：雖然規格書列了 `Health`，但程式碼裡尚未實作生命值、受傷、死亡。
+- **沒有 AI 與地圖資料化**：尚未有 `AISystem`、JSON 地圖載入、掉落物、背包、撤離點。
+- **碰撞尚未優化**：`CollisionSystem` 仍是收集 solid 後做 `O(n²)` 比對，還沒進 Quadtree。
+- **資產流程只做了一半**：`Texture::loadFromFile()` 已存在，但 `Engine::setupScene()` 目前仍用 `createSolidColor()` 建立暫時貼圖。
+
+### 目前程式碼對 Phase 的真實位置
+- **Phase 1 可視為完成**：核心骨架、ECS、輸入、基本渲染都已經到位。
+- **Phase 2 已完成大半**：玩家移動、瞄準、射擊、基礎碰撞都完成。
+- **Phase 2 尚未收尾**：缺最小敵人、扣血、死亡結果，因此還沒有形成真正的戰鬥迴圈。
+- **Phase 3 目前幾乎未開始**：Quadtree、AI 狀態機、資料驅動內容都還沒落地。
+
+### 建議的實作順序
+1. 先補 `Health` 元件與最小傷害流程，讓子彈命中敵人可扣血與刪除實體。
+2. 再做最小版敵人：固定生成 1-2 隻，僅支援追逐玩家，不急著上完整狀態機。
+3. 等戰鬥閉環成立後，再導入 Quadtree 與 JSON 地圖，避免過早優化或過早資料化。

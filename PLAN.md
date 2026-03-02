@@ -159,15 +159,17 @@ DuckEngine/
 
 ## 6. 開發里程碑 (Milestones)
 
-- [ ] **Phase 1：核心骨架（2-3 週）**
-  - [ ] 整合 CMake、SDL2 與 OpenGL，建立視窗與 Fixed Game Loop。
-  - [ ] 實作基礎 ECS 架構（Entity 創建、Component 掛載、System 遍歷）。
-  - [ ] 實作鍵盤與滑鼠輸入捕捉。
-  - [ ] 完成基本 2D 渲染器（Shader 編譯、載入 PNG、繪製靜態 Sprite）。
+- [x] **Phase 1：核心骨架（2-3 週）**
+  - [x] 整合 CMake、SDL2 與 OpenGL，建立視窗與 Fixed Game Loop。
+  - [x] 實作基礎 ECS 架構（Entity 創建、Component 掛載、System 遍歷）。
+  - [x] 實作鍵盤與滑鼠輸入捕捉。
+  - [x] 完成基本 2D 渲染器（Shader 編譯、批次繪製靜態 Sprite）。
+  - [ ] 補上實際資產流程驗證（目前 `Texture::loadFromFile()` 已存在，但主場景仍用程式生成純色貼圖）。
 - [ ] **Phase 2：遊戲基礎（3-4 週）**
-  - [ ] 玩家移動控制與滑鼠跟隨瞄準。
-  - [ ] 實作基本射擊系統（生成子彈實體、直線飛行）。
-  - [ ] 實作 AABB 與圓形碰撞檢測（Collision System）。
+  - [x] 玩家移動控制與滑鼠跟隨瞄準。
+  - [x] 實作基本射擊系統（生成子彈實體、直線飛行）。
+  - [x] 實作 AABB 與圓形碰撞檢測（Collision System）。
+  - [x] 實作基礎 DebugDraw（F1 顯示碰撞框）。
   - [ ] 實作最基礎的敵人（追逐玩家）與扣血機制。
 - [ ] **Phase 3：內容擴展（4-6 週）**
   - [ ] 引入四叉樹（Quadtree）優化碰撞。
@@ -183,6 +185,27 @@ DuckEngine/
   - [ ] 加入粒子系統（開火火光、流血特效）。
   - [ ] 實作螢幕震動（Screen Shake）增強打擊感。
   - [ ] 記憶體與效能 Profiling 優化，修復 Bug。
+
+### 6.1 目前實作狀態（依程式碼盤點，更新於 2026-03-02）
+
+**已完成的核心功能**
+* **主迴圈與視窗：** `Window` 已完成 SDL2 + OpenGL 3.3 context 初始化，`Engine::run()` 使用固定時間步 60Hz 更新邏輯，並有 V-Sync 與 `deltaTime` 上限保護。
+* **ECS：** `Registry`、`ComponentPool`、`EntityID` 已可支援 create/destroy、component 掛載、`view<...>()` 遍歷。`tests/test_ecs.cpp` 已覆蓋基本 ECS 行為。
+* **輸入：** `Input` 同時提供 polling 與單幀觸發兩種查詢，可處理鍵盤、滑鼠按鍵與滑鼠座標。
+* **渲染：** `Renderer`、`Shader`、`Texture`、`SpriteBatch` 已可繪製 2D sprite，`RenderSystem` 可依 `Transform + Sprite` 渲染，並支援碰撞框 DebugDraw。
+* **遊玩原型：** 玩家可用 `WASD` 移動、滑鼠瞄準、左鍵連射；`WeaponSystem` 會生成子彈，子彈具壽命與等速飛行。
+* **碰撞：** `CollisionSystem` 已實作 `Circle vs Circle`、`AABB vs AABB`、`Circle vs AABB`，支援 solid 互推與子彈命中固體後銷毀。`tests/test_collision.cpp` 已覆蓋主要幾何案例。
+
+**目前仍缺的關鍵功能**
+* **敵人與戰鬥閉環：** 尚無敵人實體、AI、Health、傷害結算，因此目前只有玩家射擊打石頭的 sandbox，還不是完整戰鬥 loop。
+* **內容資料化：** 尚未接入 JSON 地圖、資產目錄、掉落物、背包、撤離點與局外經濟。
+* **效能優化：** 碰撞仍是 `O(n²)`，尚未導入 Quadtree。
+* **腳本與存檔：** Lua 綁定、JSON 存讀檔尚未開始。
+
+**建議下一步**
+1. 先補 `Health`、`Damage` 與最小敵人實體，讓子彈命中能造成扣血與死亡。
+2. 再接 `AISystem` 的最小版本，只做追逐玩家與碰撞避障。
+3. 等戰鬥閉環成立後，再做 Quadtree 與地圖/資料驅動。
 
 ---
 
