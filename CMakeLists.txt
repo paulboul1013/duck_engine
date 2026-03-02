@@ -50,3 +50,12 @@ add_executable(test_enemy
     src/systems/EnemySystem.cpp
 )
 target_include_directories(test_enemy PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+# JSON map + pickup/inventory 測試
+add_executable(test_content
+    tests/test_content.cpp
+    src/ecs/Registry.cpp
+    src/core/MapLoader.cpp
+    src/systems/PickupSystem.cpp
+)
+target_include_directories(test_content PRIVATE ${CMAKE_SOURCE_DIR}/src)

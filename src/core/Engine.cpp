@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <filesystem>
+#include <string>
 
 namespace duck {
 
@@ -54,6 +56,18 @@ static uint32_t registerRoundedRectGradientTexture(
     return id;
 }
 
+static std::string resolveMapPath() {
+    namespace fs = std::filesystem;
+
+    const fs::path direct = fs::path("assets") / "maps" / "tutorial_map.json";
+    if (fs::exists(direct)) return direct.string();
+
+    const fs::path fromBuild = fs::path("..") / "assets" / "maps" / "tutorial_map.json";
+    if (fs::exists(fromBuild)) return fromBuild.string();
+
+    return direct.string();
+}
+
 Engine::Engine()
     : Engine(Config{}) {}
 
@@ -97,7 +111,6 @@ void Engine::setupScene() {
 }
 
 void Engine::setupStandardScene() {
-    // 建立紋理（目前用程式產生的純色方塊代替真實 Sprite）
     uint32_t duckID   = registerTexture(m_textureStore, m_texturePtrs, m_nextTextureID,
                                         255, 200,   0, 255);  // 鴨子黃
     uint32_t grassID  = registerTexture(m_textureStore, m_texturePtrs, m_nextTextureID,
@@ -106,62 +119,26 @@ void Engine::setupStandardScene() {
                                         120, 120, 120, 255);  // 石頭灰
     uint32_t bulletID = registerTexture(m_textureStore, m_texturePtrs, m_nextTextureID,
                                         255, 255, 255, 255);  // 白色（由 Sprite 色彩調變成紅色）
+    uint32_t coinID   = registerTexture(m_textureStore, m_texturePtrs, m_nextTextureID,
+                                        255, 220,  70, 255);
+    uint32_t ammoID   = registerTexture(m_textureStore, m_texturePtrs, m_nextTextureID,
+                                        220, 220, 160, 255);
+    uint32_t medkitID = registerTexture(m_textureStore, m_texturePtrs, m_nextTextureID,
+                                        180, 255, 180, 255);
 
-    // -------------------------------------------------------
-    // 玩家鴨子
-    // -------------------------------------------------------
-    // 為什麼把玩家也放進 ECS 而不是特殊處理？
-    // 這樣 MovementSystem、RenderSystem 等不需要知道哪個是玩家
-    // 未來加入多人模式，只需要多建幾個有 InputControlled 的 entity
-    auto player = m_registry.create();
-    m_registry.addComponent<Transform>(player, 640.0f, 360.0f, 0.0f, 1.0f, 1.0f);
-    m_registry.addComponent<Sprite>(player, duckID, 48.0f, 48.0f, 4, 1.0f, 1.0f, 1.0f, 1.0f);
-    m_registry.addComponent<RigidBody>(player, 0.0f, 0.0f, 1.0f, 0.85f);
-    m_registry.addComponent<InputControlled>(player);
-    m_registry.addComponent<Weapon>(player, bulletID, 900.0f, 0.1f, 0.0f, 2.0f, 10.0f, 1.0f);
-    m_registry.addComponent<Collider>(player, Collider::Type::Circle, 24.0f, 24.0f, 24.0f, true);
-    m_registry.addComponent<Health>(player, 5.0f, 5.0f);
+    MapSceneAssets assets;
+    assets.playerTexID = duckID;
+    assets.groundTexID = grassID;
+    assets.obstacleTexID = rockID;
+    assets.bulletTexID = bulletID;
+    assets.coinTexID = coinID;
+    assets.ammoTexID = ammoID;
+    assets.medkitTexID = medkitID;
 
-    // -------------------------------------------------------
-    // 靜態場景 — Z-Order 0：草地背景
-    // -------------------------------------------------------
-    // 靜態物件不需要 RigidBody 和 InputControlled
-    // 只要 Transform + Sprite 就能被 RenderSystem 繪製
-    auto ground = m_registry.create();
-    m_registry.addComponent<Transform>(ground, 640.0f, 630.0f, 0.0f, 1.0f, 1.0f);
-    m_registry.addComponent<Sprite>(ground, grassID, 1280.0f, 200.0f, 0, 1.0f, 1.0f, 1.0f, 1.0f);
-
-    // -------------------------------------------------------
-    // 靜態場景 — Z-Order 2：石頭障礙物（有旋轉角度）
-    // -------------------------------------------------------
-    auto rock1 = m_registry.create();
-    m_registry.addComponent<Transform>(rock1, 300.0f, 300.0f, 0.3f, 1.0f, 1.0f);
-    m_registry.addComponent<Sprite>(rock1, rockID, 80.0f, 80.0f, 2, 1.0f, 1.0f, 1.0f, 1.0f);
-    m_registry.addComponent<Collider>(rock1, Collider::Type::AABB, 40.0f, 40.0f, 40.0f, true);
-
-    auto rock2 = m_registry.create();
-    m_registry.addComponent<Transform>(rock2, 900.0f, 250.0f, -0.5f, 1.0f, 1.0f);
-    m_registry.addComponent<Sprite>(rock2, rockID, 60.0f, 60.0f, 2, 1.0f, 1.0f, 1.0f, 1.0f);
-    m_registry.addComponent<Collider>(rock2, Collider::Type::AABB, 30.0f, 30.0f, 30.0f, true);
-
-    // -------------------------------------------------------
-    // 最小版敵人：追逐玩家，可被子彈擊殺
-    // -------------------------------------------------------
-    auto enemy1 = m_registry.create();
-    m_registry.addComponent<Transform>(enemy1, 980.0f, 520.0f, 0.0f, 1.0f, 1.0f);
-    m_registry.addComponent<Sprite>(enemy1, duckID, 42.0f, 42.0f, 4, 0.85f, 0.2f, 0.2f, 1.0f);
-    m_registry.addComponent<RigidBody>(enemy1, 0.0f, 0.0f, 1.0f, 0.88f);
-    m_registry.addComponent<Collider>(enemy1, Collider::Type::Circle, 20.0f, 20.0f, 20.0f, true);
-    m_registry.addComponent<Health>(enemy1, 3.0f, 3.0f);
-    m_registry.addComponent<Enemy>(enemy1);
-
-    auto enemy2 = m_registry.create();
-    m_registry.addComponent<Transform>(enemy2, 210.0f, 180.0f, 0.0f, 1.0f, 1.0f);
-    m_registry.addComponent<Sprite>(enemy2, duckID, 42.0f, 42.0f, 4, 0.85f, 0.2f, 0.2f, 1.0f);
-    m_registry.addComponent<RigidBody>(enemy2, 0.0f, 0.0f, 1.0f, 0.88f);
-    m_registry.addComponent<Collider>(enemy2, Collider::Type::Circle, 20.0f, 20.0f, 20.0f, true);
-    m_registry.addComponent<Health>(enemy2, 3.0f, 3.0f);
-    m_registry.addComponent<Enemy>(enemy2);
+    std::string mapPath = resolveMapPath();
+    if (!m_mapLoader.loadFromFile(mapPath, m_registry, assets)) {
+        std::printf("Map 載入失敗: %s\n", mapPath.c_str());
+    }
 }
 
 void Engine::setupStressScene() {
@@ -186,6 +163,7 @@ void Engine::setupStressScene() {
     m_registry.addComponent<Weapon>(player, bulletID, 900.0f, 0.06f, 0.0f, 2.0f, 10.0f, 1.0f);
     m_registry.addComponent<Collider>(player, Collider::Type::Circle, 24.0f, 24.0f, 24.0f, true);
     m_registry.addComponent<Health>(player, 10.0f, 10.0f);
+    m_registry.addComponent<Inventory>(player);
 
     // 用規則網格生成障礙物，讓 Quadtree broad phase 有明顯切割空間
     for (int row = 0; row < 7; ++row) {
@@ -338,14 +316,16 @@ void Engine::run() {
             Uint64 t2 = SDL_GetPerformanceCounter();
             m_weaponSystem.update(m_registry, m_input, FIXED_DT);
             Uint64 t3 = SDL_GetPerformanceCounter();
+            m_pickupSystem.update(m_registry);
+            Uint64 tPickup = SDL_GetPerformanceCounter();
             m_collisionSystem.update(m_registry, FIXED_DT);
             Uint64 t4 = SDL_GetPerformanceCounter();
 
             double counterToMs = 1000.0 / static_cast<double>(freq);
             m_profileAccumEnemyMs += static_cast<double>(t1 - t0) * counterToMs;
             m_profileAccumMovementMs += static_cast<double>(t2 - t1) * counterToMs;
-            m_profileAccumWeaponMs += static_cast<double>(t3 - t2) * counterToMs;
-            m_profileAccumCollisionMs += static_cast<double>(t4 - t3) * counterToMs;
+            m_profileAccumWeaponMs += static_cast<double>(tPickup - t2) * counterToMs;
+            m_profileAccumCollisionMs += static_cast<double>(t4 - tPickup) * counterToMs;
             ++m_profileFixedStepCount;
 
             bool playerDead = false;

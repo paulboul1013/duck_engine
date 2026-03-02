@@ -1,5 +1,6 @@
 #pragma once
 #include "platform/Window.h"
+#include "core/MapLoader.h"
 #include "platform/Input.h"
 #include "renderer/Renderer.h"
 #include "renderer/Texture.h"
@@ -9,6 +10,7 @@
 #include "systems/WeaponSystem.h"
 #include "systems/EnemySystem.h"
 #include "systems/CollisionSystem.h"
+#include "systems/PickupSystem.h"
 #include <unordered_map>
 #include <memory>
 #include <cstdint>
@@ -66,6 +68,8 @@ private:
     WeaponSystem   m_weaponSystem;
     EnemySystem    m_enemySystem;
     CollisionSystem m_collisionSystem;
+    PickupSystem   m_pickupSystem;
+    MapLoader      m_mapLoader;
 
     // 紋理資源管理
     std::unordered_map<uint32_t, std::unique_ptr<Texture>> m_textureStore;

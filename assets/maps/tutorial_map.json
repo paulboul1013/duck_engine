@@ -1,0 +1,27 @@
+{
+  "player": {
+    "x": 640.0,
+    "y": 360.0,
+    "hp": 5.0
+  },
+  "ground": {
+    "x": 640.0,
+    "y": 360.0,
+    "width": 1280.0,
+    "height": 720.0
+  },
+  "obstacles": [
+    { "x": 300.0, "y": 300.0, "width": 80.0, "height": 80.0, "rotation": 0.3 },
+    { "x": 900.0, "y": 250.0, "width": 60.0, "height": 60.0, "rotation": -0.5 },
+    { "x": 650.0, "y": 150.0, "width": 90.0, "height": 48.0, "rotation": 0.0 }
+  ],
+  "enemies": [
+    { "x": 980.0, "y": 520.0, "hp": 3.0, "detect_range": 320.0, "attack_range": 56.0 },
+    { "x": 210.0, "y": 180.0, "hp": 3.0, "detect_range": 320.0, "attack_range": 56.0 }
+  ],
+  "items": [
+    { "x": 560.0, "y": 360.0, "type": "duck_coin", "amount": 8, "pickup_radius": 42.0 },
+    { "x": 720.0, "y": 420.0, "type": "ammo", "amount": 12, "pickup_radius": 42.0 },
+    { "x": 640.0, "y": 500.0, "type": "medkit", "amount": 1, "pickup_radius": 42.0 }
+  ]
+}

@@ -104,6 +104,23 @@ struct Health {
     float maxHP = 1.0f;
 };
 
+// 簡化背包：先做成資源堆疊，不做格子/重量系統
+// 等資料驅動內容更完整後，再擴充成真正的 Inventory grid。
+struct Inventory {
+    int duckCoins = 0;
+    int ammo = 0;
+    int medkits = 0;
+    int totalPickups = 0;
+};
+
+struct Item {
+    enum class Type { DuckCoin, Ammo, Medkit };
+
+    Type type = Type::DuckCoin;
+    int amount = 1;
+    float pickupRadius = 36.0f;
+};
+
 // 碰撞元件：描述實體的碰撞形狀
 // Circle：角色/圓柱障礙，旋轉不影響形狀，計算最快
 // AABB：軸對齊矩形，最適合方形牆壁/箱子
