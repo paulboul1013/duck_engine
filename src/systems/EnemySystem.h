@@ -4,11 +4,14 @@
 namespace duck {
 
 // ============================================================
-// EnemySystem — 最小版敵人追逐
+// EnemySystem — 敵人狀態機
 // ============================================================
-// Phase 2 先只做一件事：
-// 找到玩家位置，讓所有 Enemy 朝玩家加速移動。
-// 狀態機、攻擊、巡邏等留到後續再拆成真正的 AISystem。
+// 目前支援：
+// IDLE: 玩家未進入偵測範圍時待機
+// CHASE: 玩家被看見後追逐
+// ATTACK: 進入近距離後停住並面向玩家，接觸傷害由 CollisionSystem 處理
+// PATROL: 失去目標後繞出生點附近巡邏
+// DEAD: 死亡殘留短時間後銷毀
 class EnemySystem {
 public:
     void update(Registry& registry, float dt);

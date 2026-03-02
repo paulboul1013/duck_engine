@@ -44,12 +44,29 @@ struct RigidBody {
 // 就能精確篩選出「受玩家控制的、有物理屬性的實體」
 struct InputControlled {};
 
-// 敵人元件：目前同時扮演標記 + 最小接觸傷害狀態
-// Phase 2 先只做追逐玩家與碰撞扣血，Phase 3 再擴充為完整 AI 狀態機。
+// 敵人元件：最小版完整狀態機
+// 狀態流：IDLE -> CHASE -> ATTACK -> PATROL -> DEAD
 struct Enemy {
+    enum class State { Idle, Chase, Attack, Patrol, Dead };
+
+    State state = State::Idle;
     float touchDamage = 1.0f;
     float touchInterval = 0.75f;
     float touchCooldown = 0.0f;
+    float detectRange = 320.0f;
+    float attackRange = 56.0f;
+    float loseSightDelay = 1.5f;
+    float loseSightTimer = 1.5f;
+    float moveAcceleration = 1100.0f;
+    float patrolRadius = 90.0f;
+    float patrolAngle = 0.0f;
+    float patrolWaitTimer = 0.0f;
+    float patrolWaitDuration = 0.7f;
+    float deadTimer = 0.5f;
+    float deadLifetime = 0.5f;
+    float homeX = 0.0f;
+    float homeY = 0.0f;
+    bool homeInitialized = false;
 };
 
 // 武器元件：描述槍枝屬性

@@ -3,6 +3,7 @@
 // 不依賴 OpenGL/SDL2，純 CPU 測試
 
 #include "systems/CollisionSystem.h"
+#include "systems/EnemySystem.h"
 #include "ecs/Components.h"
 #include "ecs/Registry.h"
 #include <cassert>
@@ -146,17 +147,24 @@ void test_bullet_hits_enemy_and_kills() {
     reg.addComponent<duck::Transform>(enemy, 30.0f, 0.0f, 0.0f, 1.0f, 1.0f);
     reg.addComponent<duck::Collider>(enemy, duck::Collider::Type::Circle, 16.0f, 16.0f, 16.0f, true);
     reg.addComponent<duck::Health>(enemy, 1.0f, 1.0f);
-    reg.addComponent<duck::Enemy>(enemy);
+    reg.addComponent<duck::RigidBody>(enemy, 0.0f, 0.0f, 1.0f, 0.9f);
+    reg.addComponent<duck::Enemy>(enemy, duck::Enemy{});
 
     auto bullet = reg.create();
     reg.addComponent<duck::Transform>(bullet, 30.0f, 0.0f, 0.0f, 1.0f, 1.0f);
     reg.addComponent<duck::Bullet>(bullet, 0.0f, 0.0f, 1.0f, 5.0f, 1.0f);
 
-    duck::CollisionSystem system;
-    system.update(reg, 1.0f / 60.0f);
+    duck::CollisionSystem collisionSystem;
+    collisionSystem.update(reg, 1.0f / 60.0f);
 
     assert(!reg.alive(bullet));
-    assert(!reg.alive(enemy));
+    assert(reg.alive(enemy));
+    assert(reg.getComponent<duck::Health>(enemy).currentHP <= 0.0f);
+    assert(reg.getComponent<duck::Enemy>(enemy).state == duck::Enemy::State::Idle);
+
+    duck::EnemySystem enemySystem;
+    enemySystem.update(reg, 1.0f / 60.0f);
+    assert(reg.getComponent<duck::Enemy>(enemy).state == duck::Enemy::State::Dead);
     assert(reg.alive(player));
     std::printf("  [PASS] test_bullet_hits_enemy_and_kills\n");
 }
@@ -174,7 +182,11 @@ void test_enemy_touch_damages_player_once_per_cooldown() {
     auto enemy = reg.create();
     reg.addComponent<duck::Transform>(enemy, 10.0f, 0.0f, 0.0f, 1.0f, 1.0f);
     reg.addComponent<duck::Collider>(enemy, duck::Collider::Type::Circle, 16.0f, 16.0f, 16.0f, true);
-    reg.addComponent<duck::Enemy>(enemy, 1.0f, 0.75f, 0.0f);
+    duck::Enemy enemyData;
+    enemyData.touchDamage = 1.0f;
+    enemyData.touchInterval = 0.75f;
+    enemyData.touchCooldown = 0.0f;
+    reg.addComponent<duck::Enemy>(enemy, enemyData);
     reg.addComponent<duck::RigidBody>(enemy, 0.0f, 0.0f, 1.0f, 0.9f);
 
     duck::CollisionSystem system;

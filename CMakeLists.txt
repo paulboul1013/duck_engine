@@ -39,5 +39,14 @@ add_executable(test_collision
     tests/test_collision.cpp
     src/ecs/Registry.cpp
     src/systems/CollisionSystem.cpp
+    src/systems/EnemySystem.cpp
 )
 target_include_directories(test_collision PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+# Enemy AI 狀態機測試
+add_executable(test_enemy
+    tests/test_enemy.cpp
+    src/ecs/Registry.cpp
+    src/systems/EnemySystem.cpp
+)
+target_include_directories(test_enemy PRIVATE ${CMAKE_SOURCE_DIR}/src)

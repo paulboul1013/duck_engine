@@ -170,11 +170,12 @@ DuckEngine/
   - [x] 實作基本射擊系統（生成子彈實體、直線飛行）。
   - [x] 實作 AABB 與圓形碰撞檢測（Collision System）。
   - [x] 實作基礎 DebugDraw（F1 顯示碰撞框）。
-  - [ ] 實作最基礎的敵人（追逐玩家）與扣血機制。
+  - [x] 實作最基礎的敵人（追逐玩家）、`Health/Damage`、接觸傷害與玩家死亡。
+  - [x] 實作最小 HUD 血條（左上角圓角血條 + 受傷殘影回饋）。
 - [ ] **Phase 3：內容擴展（4-6 週）**
   - [ ] 引入四叉樹（Quadtree）優化碰撞。
   - [ ] 擴展武器系統（步槍連發、霰彈槍多彈丸）。
-  - [ ] 實作 AI 狀態機（巡邏、追逐、攻擊）。
+  - [x] 實作 AI 狀態機的最小落地版（Idle / Chase / Attack / Patrol / Dead）。
   - [ ] 解析 JSON 載入地圖；實作背包與掉落物撿拾邏輯。
 - [ ] **Phase 4：完整循環（3-4 週）**
   - [ ] 實作「撤離點」機制與倒數計時。
@@ -194,18 +195,24 @@ DuckEngine/
 * **輸入：** `Input` 同時提供 polling 與單幀觸發兩種查詢，可處理鍵盤、滑鼠按鍵與滑鼠座標。
 * **渲染：** `Renderer`、`Shader`、`Texture`、`SpriteBatch` 已可繪製 2D sprite，`RenderSystem` 可依 `Transform + Sprite` 渲染，並支援碰撞框 DebugDraw。
 * **遊玩原型：** 玩家可用 `WASD` 移動、滑鼠瞄準、左鍵連射；`WeaponSystem` 會生成子彈，子彈具壽命與等速飛行。
-* **碰撞：** `CollisionSystem` 已實作 `Circle vs Circle`、`AABB vs AABB`、`Circle vs AABB`，支援 solid 互推與子彈命中固體後銷毀。`tests/test_collision.cpp` 已覆蓋主要幾何案例。
+* **戰鬥閉環：** 已有 `Health`、子彈傷害、敵人接觸傷害、玩家死亡結束本局，以及左上角血條 HUD 與受傷殘影回饋。
+* **碰撞：** `CollisionSystem` 已實作 `Circle vs Circle`、`AABB vs AABB`、`Circle vs AABB`，支援 solid 互推、子彈命中、敵人接觸玩家。`tests/test_collision.cpp` 已覆蓋主要幾何與戰鬥案例。
+* **敵人 AI：** `EnemySystem` 已有最小狀態機：`Idle / Chase / Attack / Patrol / Dead`。`tests/test_enemy.cpp` 已覆蓋主要狀態轉換。
 
 **目前仍缺的關鍵功能**
-* **敵人與戰鬥閉環：** 尚無敵人實體、AI、Health、傷害結算，因此目前只有玩家射擊打石頭的 sandbox，還不是完整戰鬥 loop。
+* **內容深度仍低：** 雖然已有戰鬥閉環，但目前敵人仍是單一近戰 archetype，沒有遠程攻擊、不同敵人種類或掉落物。
 * **內容資料化：** 尚未接入 JSON 地圖、資產目錄、掉落物、背包、撤離點與局外經濟。
 * **效能優化：** 碰撞仍是 `O(n²)`，尚未導入 Quadtree。
 * **腳本與存檔：** Lua 綁定、JSON 存讀檔尚未開始。
 
 **建議下一步**
-1. 先補 `Health`、`Damage` 與最小敵人實體，讓子彈命中能造成扣血與死亡。
-2. 再接 `AISystem` 的最小版本，只做追逐玩家與碰撞避障。
-3. 等戰鬥閉環成立後，再做 Quadtree 與地圖/資料驅動。
+1. 補強敵人攻擊表現，例如攻擊前搖、受擊反饋、死亡淡出或掉落物。
+2. 導入 Quadtree，避免敵人與子彈數量增加後碰撞成本失控。
+3. 開始把地圖、敵人配置與資源改成 JSON / 資料驅動。
+
+**目前里程碑判斷**
+* **Phase 2：已進入後段。** 核心戰鬥 loop 已成立，玩家與敵人互相造成傷害，UI 回饋也已補上。
+* **Phase 3：已起步。** AI 狀態機已經有最小落地版，但 Quadtree 與資料驅動內容仍未開始，因此還不算全面進入內容擴展期。
 
 ---
 

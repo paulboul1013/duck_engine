@@ -4,6 +4,12 @@
 
 namespace duck {
 
+static bool enemyCanDealTouchDamage(Registry& registry, EntityID entity) {
+    if (!registry.hasComponent<Enemy>(entity)) return false;
+    const auto& enemy = registry.getComponent<Enemy>(entity);
+    return enemy.state != Enemy::State::Dead;
+}
+
 void CollisionSystem::update(Registry& registry, float /*dt*/) {
 
     // -------------------------------------------------------
@@ -87,8 +93,8 @@ void CollisionSystem::update(Registry& registry, float /*dt*/) {
             // 兩者都靜態：不處理
 
             // Enemy vs Player：接觸傷害
-            bool aIsEnemy = registry.hasComponent<Enemy>(A);
-            bool bIsEnemy = registry.hasComponent<Enemy>(B);
+            bool aIsEnemy = enemyCanDealTouchDamage(registry, A);
+            bool bIsEnemy = enemyCanDealTouchDamage(registry, B);
             bool aIsPlayer = registry.hasComponent<InputControlled>(A);
             bool bIsPlayer = registry.hasComponent<InputControlled>(B);
 
@@ -151,7 +157,8 @@ void CollisionSystem::update(Registry& registry, float /*dt*/) {
                 if (registry.hasComponent<Health>(solidID)) {
                     auto& health = registry.getComponent<Health>(solidID);
                     health.currentHP -= bullet.damage;
-                    if (health.currentHP <= 0.0f && !registry.hasComponent<InputControlled>(solidID)) {
+                    if (health.currentHP <= 0.0f && !registry.hasComponent<InputControlled>(solidID)
+                        && !registry.hasComponent<Enemy>(solidID)) {
                         entitiesToDestroy.push_back(solidID);
                     } else if (health.currentHP < 0.0f) {
                         health.currentHP = 0.0f;
