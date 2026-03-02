@@ -159,6 +159,20 @@ void Engine::run() {
             m_movementSystem.update(m_registry, m_input, FIXED_DT);
             m_weaponSystem.update(m_registry, m_input, FIXED_DT);
             m_collisionSystem.update(m_registry, FIXED_DT);
+
+            bool playerDead = false;
+            m_registry.view<Health, InputControlled>([&](EntityID entity) {
+                (void)entity;
+                auto& health = m_registry.getComponent<Health>(entity);
+                if (health.currentHP <= 0.0f) {
+                    playerDead = true;
+                }
+            });
+            if (playerDead) {
+                std::printf("玩家死亡，遊戲結束\n");
+                return;
+            }
+
             accumulator -= FIXED_DT;
         }
 

@@ -85,6 +85,30 @@ void CollisionSystem::update(Registry& registry, float /*dt*/) {
                 tfB.y += ny * depth;
             }
             // 兩者都靜態：不處理
+
+            // Enemy vs Player：接觸傷害
+            bool aIsEnemy = registry.hasComponent<Enemy>(A);
+            bool bIsEnemy = registry.hasComponent<Enemy>(B);
+            bool aIsPlayer = registry.hasComponent<InputControlled>(A);
+            bool bIsPlayer = registry.hasComponent<InputControlled>(B);
+
+            if (aIsEnemy && bIsPlayer && registry.hasComponent<Health>(B)) {
+                auto& enemy = registry.getComponent<Enemy>(A);
+                if (enemy.touchCooldown <= 0.0f) {
+                    auto& playerHealth = registry.getComponent<Health>(B);
+                    playerHealth.currentHP -= enemy.touchDamage;
+                    if (playerHealth.currentHP < 0.0f) playerHealth.currentHP = 0.0f;
+                    enemy.touchCooldown = enemy.touchInterval;
+                }
+            } else if (bIsEnemy && aIsPlayer && registry.hasComponent<Health>(A)) {
+                auto& enemy = registry.getComponent<Enemy>(B);
+                if (enemy.touchCooldown <= 0.0f) {
+                    auto& playerHealth = registry.getComponent<Health>(A);
+                    playerHealth.currentHP -= enemy.touchDamage;
+                    if (playerHealth.currentHP < 0.0f) playerHealth.currentHP = 0.0f;
+                    enemy.touchCooldown = enemy.touchInterval;
+                }
+            }
         }
     }
 
@@ -127,8 +151,10 @@ void CollisionSystem::update(Registry& registry, float /*dt*/) {
                 if (registry.hasComponent<Health>(solidID)) {
                     auto& health = registry.getComponent<Health>(solidID);
                     health.currentHP -= bullet.damage;
-                    if (health.currentHP <= 0.0f) {
+                    if (health.currentHP <= 0.0f && !registry.hasComponent<InputControlled>(solidID)) {
                         entitiesToDestroy.push_back(solidID);
+                    } else if (health.currentHP < 0.0f) {
+                        health.currentHP = 0.0f;
                     }
                 }
                 break;  // 一個子彈只需要刪一次

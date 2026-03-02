@@ -44,9 +44,13 @@ struct RigidBody {
 // 就能精確篩選出「受玩家控制的、有物理屬性的實體」
 struct InputControlled {};
 
-// 敵人標記元件：最小版 AI 只需要知道「這是敵人」
-// 先不放狀態機資料，等 Phase 3 再擴充為真正的 AI component
-struct Enemy {};
+// 敵人元件：目前同時扮演標記 + 最小接觸傷害狀態
+// Phase 2 先只做追逐玩家與碰撞扣血，Phase 3 再擴充為完整 AI 狀態機。
+struct Enemy {
+    float touchDamage = 1.0f;
+    float touchInterval = 0.75f;
+    float touchCooldown = 0.0f;
+};
 
 // 武器元件：描述槍枝屬性
 // bulletTextureID：子彈使用的紋理（存 ID 而非指標，熱重載安全）

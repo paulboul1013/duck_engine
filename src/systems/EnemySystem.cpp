@@ -22,6 +22,12 @@ void EnemySystem::update(Registry& registry, float dt) {
     registry.view<Transform, RigidBody, Enemy>([&](EntityID entity) {
         auto& tf = registry.getComponent<Transform>(entity);
         auto& rb = registry.getComponent<RigidBody>(entity);
+        auto& enemy = registry.getComponent<Enemy>(entity);
+
+        if (enemy.touchCooldown > 0.0f) {
+            enemy.touchCooldown -= dt;
+            if (enemy.touchCooldown < 0.0f) enemy.touchCooldown = 0.0f;
+        }
 
         float dx = playerX - tf.x;
         float dy = playerY - tf.y;

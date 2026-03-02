@@ -161,6 +161,33 @@ void test_bullet_hits_enemy_and_kills() {
     std::printf("  [PASS] test_bullet_hits_enemy_and_kills\n");
 }
 
+void test_enemy_touch_damages_player_once_per_cooldown() {
+    duck::Registry reg;
+
+    auto player = reg.create();
+    reg.addComponent<duck::Transform>(player, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f);
+    reg.addComponent<duck::Collider>(player, duck::Collider::Type::Circle, 16.0f, 16.0f, 16.0f, true);
+    reg.addComponent<duck::Health>(player, 5.0f, 5.0f);
+    reg.addComponent<duck::InputControlled>(player);
+    reg.addComponent<duck::RigidBody>(player, 0.0f, 0.0f, 1.0f, 0.9f);
+
+    auto enemy = reg.create();
+    reg.addComponent<duck::Transform>(enemy, 10.0f, 0.0f, 0.0f, 1.0f, 1.0f);
+    reg.addComponent<duck::Collider>(enemy, duck::Collider::Type::Circle, 16.0f, 16.0f, 16.0f, true);
+    reg.addComponent<duck::Enemy>(enemy, 1.0f, 0.75f, 0.0f);
+    reg.addComponent<duck::RigidBody>(enemy, 0.0f, 0.0f, 1.0f, 0.9f);
+
+    duck::CollisionSystem system;
+    system.update(reg, 1.0f / 60.0f);
+
+    auto& playerHealth = reg.getComponent<duck::Health>(player);
+    assert(approx(playerHealth.currentHP, 4.0f));
+
+    system.update(reg, 1.0f / 60.0f);
+    assert(approx(playerHealth.currentHP, 4.0f));
+    std::printf("  [PASS] test_enemy_touch_damages_player_once_per_cooldown\n");
+}
+
 // ─────────────────────────────────────────
 // main
 // ─────────────────────────────────────────
@@ -187,6 +214,7 @@ int main() {
 
     std::printf("--- Bullet Damage ---\n");
     test_bullet_hits_enemy_and_kills();
+    test_enemy_touch_damages_player_once_per_cooldown();
 
     std::printf("\n=== All tests passed! ===\n");
     return 0;
