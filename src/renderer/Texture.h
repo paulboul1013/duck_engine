@@ -13,6 +13,8 @@ public:
 
     bool loadFromFile(const std::string& path);
     bool createSolidColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a, int width, int height);
+    bool createRoundedRectMask(int width, int height, float radius);
+    bool createRoundedRectGradientMask(int width, int height, float radius);
     void bind(int slot = 0) const;
 
     GLuint getID() const { return m_textureID; }

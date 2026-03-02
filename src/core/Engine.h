@@ -61,6 +61,13 @@ private:
     std::unordered_map<uint32_t, std::unique_ptr<Texture>> m_textureStore;
     std::unordered_map<uint32_t, Texture*>                  m_texturePtrs;
     uint32_t m_nextTextureID = 1;  // 從 1 開始，0 保留為「無效 ID」
+    uint32_t m_uiRoundedRectTexID = 0;
+    uint32_t m_uiGradientTexID = 0;
+    float m_healthBarLagRatio = 1.0f;
+    float m_healthBarFlashStartRatio = 1.0f;
+    float m_healthBarFlashEndRatio = 1.0f;
+    float m_healthBarFlashTimer = 0.0f;
+    bool m_healthBarInitialized = false;
 
     // DebugDraw 狀態（F1 切換）
     bool m_debugMode = false;

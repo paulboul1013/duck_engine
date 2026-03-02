@@ -1,6 +1,7 @@
 #include "core/Engine.h"
 #include "ecs/Components.h"
 #include <SDL2/SDL.h>
+#include <algorithm>
 #include <cstdio>
 
 namespace duck {
@@ -20,6 +21,38 @@ static uint32_t registerTexture(
     return id;
 }
 
+static uint32_t registerRoundedRectTexture(
+    std::unordered_map<uint32_t, std::unique_ptr<Texture>>& store,
+    std::unordered_map<uint32_t, Texture*>& ptrs,
+    uint32_t& nextID,
+    int width,
+    int height,
+    float radius)
+{
+    auto tex = std::make_unique<Texture>();
+    tex->createRoundedRectMask(width, height, radius);
+    uint32_t id = nextID++;
+    ptrs[id] = tex.get();
+    store[id] = std::move(tex);
+    return id;
+}
+
+static uint32_t registerRoundedRectGradientTexture(
+    std::unordered_map<uint32_t, std::unique_ptr<Texture>>& store,
+    std::unordered_map<uint32_t, Texture*>& ptrs,
+    uint32_t& nextID,
+    int width,
+    int height,
+    float radius)
+{
+    auto tex = std::make_unique<Texture>();
+    tex->createRoundedRectGradientMask(width, height, radius);
+    uint32_t id = nextID++;
+    ptrs[id] = tex.get();
+    store[id] = std::move(tex);
+    return id;
+}
+
 bool Engine::init() {
     if (!m_window.init("Duck Engine - Phase 2", 1280, 720)) return false;
     if (!m_renderer.init(1280, 720)) return false;
@@ -30,6 +63,10 @@ bool Engine::init() {
     uint32_t debugTexID = registerTexture(m_textureStore, m_texturePtrs, m_nextTextureID,
                                           255, 255, 255, 255);
     m_renderSystem.setDebugTexID(debugTexID);
+    m_uiRoundedRectTexID = registerRoundedRectTexture(
+        m_textureStore, m_texturePtrs, m_nextTextureID, 96, 24, 10.0f);
+    m_uiGradientTexID = registerRoundedRectGradientTexture(
+        m_textureStore, m_texturePtrs, m_nextTextureID, 96, 24, 10.0f);
     std::printf("F1：切換碰撞框 DebugDraw\n");
 
     std::printf("=== Engine 初始化完成 ===\n");
@@ -184,6 +221,103 @@ void Engine::run() {
         m_renderer.clear({0.15f, 0.15f, 0.2f, 1.0f});  // 深藍灰背景
         m_renderer.begin();
         m_renderSystem.render(m_registry, m_renderer, m_texturePtrs);
+
+        auto uiIt = m_texturePtrs.find(m_uiRoundedRectTexID);
+        auto gradientIt = m_texturePtrs.find(m_uiGradientTexID);
+        if (uiIt != m_texturePtrs.end()) {
+            float currentHP = 0.0f;
+            float maxHP = 1.0f;
+            m_registry.view<Health, InputControlled>([&](EntityID entity) {
+                auto& health = m_registry.getComponent<Health>(entity);
+                currentHP = health.currentHP;
+                maxHP = health.maxHP;
+            });
+
+            float hpRatio = maxHP > 0.0f ? currentHP / maxHP : 0.0f;
+            if (hpRatio < 0.0f) hpRatio = 0.0f;
+            if (hpRatio > 1.0f) hpRatio = 1.0f;
+
+            if (!m_healthBarInitialized) {
+                m_healthBarLagRatio = hpRatio;
+                m_healthBarFlashStartRatio = hpRatio;
+                m_healthBarFlashEndRatio = hpRatio;
+                m_healthBarInitialized = true;
+            }
+
+            if (hpRatio < m_healthBarLagRatio) {
+                m_healthBarFlashStartRatio = hpRatio;
+                m_healthBarFlashEndRatio = m_healthBarLagRatio;
+                m_healthBarFlashTimer = 1.0f;
+            }
+            m_healthBarLagRatio = hpRatio;
+            if (m_healthBarFlashTimer > 0.0f) {
+                m_healthBarFlashTimer -= deltaTime;
+                if (m_healthBarFlashTimer < 0.0f) m_healthBarFlashTimer = 0.0f;
+            }
+
+            const Texture& uiTex = *uiIt->second;
+            const Texture* gradientTex = (gradientIt != m_texturePtrs.end()) ? gradientIt->second : nullptr;
+            const float left = 24.0f;
+            const float top = 22.0f;
+            const float barWidth = 220.0f;
+            const float barHeight = 28.0f;
+            const float bgInset = 2.0f;
+            const float bgWidth = barWidth - bgInset * 2.0f;
+            const float bgHeight = barHeight - bgInset * 2.0f;
+            const float bgCenterX = left + barWidth * 0.5f;
+            const float centerY = top + barHeight * 0.5f;
+
+            // 黑底外框
+            m_renderer.drawSprite(
+                uiTex,
+                {bgCenterX, centerY},
+                {barWidth, barHeight},
+                0.0f,
+                {0.03f, 0.03f, 0.04f, 0.98f},
+                9
+            );
+
+            // 灰色背景底條
+            m_renderer.drawSprite(
+                uiTex,
+                {bgCenterX, centerY},
+                {bgWidth, bgHeight},
+                0.0f,
+                {0.34f, 0.34f, 0.37f, 0.96f},
+                10
+            );
+
+            if (gradientTex && m_healthBarFlashTimer > 0.0f) {
+                float flashRatio = m_healthBarFlashTimer / 1.0f;
+                float flashWidth = bgWidth * (m_healthBarFlashEndRatio - m_healthBarFlashStartRatio);
+                if (flashWidth > 0.0f) {
+                    float flashLeft = (left + bgInset) + bgWidth * m_healthBarFlashStartRatio;
+                    float flashCenterX = flashLeft + flashWidth * 0.5f;
+                    float flashAlpha = 0.70f * flashRatio;
+                    m_renderer.drawSprite(
+                        *gradientTex,
+                        {flashCenterX, centerY},
+                        {flashWidth, bgHeight},
+                        0.0f,
+                        {1.0f, 0.62f, 0.62f, flashAlpha},
+                        11
+                    );
+                }
+            }
+
+            float fillWidth = bgWidth * hpRatio;
+            if (fillWidth > 0.0f) {
+                float fillCenterX = (left + bgInset) + fillWidth * 0.5f;
+                m_renderer.drawSprite(
+                    uiTex,
+                    {fillCenterX, centerY},
+                    {fillWidth, bgHeight},
+                    0.0f,
+                    {0.88f, 0.14f, 0.12f, 0.98f},
+                    12
+                );
+            }
+        }
         m_renderer.end();
 
         m_window.swapBuffers();
