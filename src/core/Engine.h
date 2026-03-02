@@ -7,6 +7,7 @@
 #include "systems/MovementSystem.h"
 #include "systems/RenderSystem.h"
 #include "systems/WeaponSystem.h"
+#include "systems/EnemySystem.h"
 #include "systems/CollisionSystem.h"
 #include <unordered_map>
 #include <memory>
@@ -53,6 +54,7 @@ private:
     MovementSystem m_movementSystem;
     RenderSystem   m_renderSystem;
     WeaponSystem   m_weaponSystem;
+    EnemySystem    m_enemySystem;
     CollisionSystem m_collisionSystem;
 
     // 紋理資源管理

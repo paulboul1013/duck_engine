@@ -93,11 +93,13 @@ void CollisionSystem::update(Registry& registry, float /*dt*/) {
     // -------------------------------------------------------
     // 子彈不加 Collider 元件，直接用 Bullet.radius 做距離判斷
     // 跳過 InputControlled（玩家），Phase 2 不做玩家受傷
-    std::vector<EntityID> toDestroy;
+    std::vector<EntityID> bulletsToDestroy;
+    std::vector<EntityID> entitiesToDestroy;
 
     registry.view<Transform, Bullet>([&](EntityID bulletID) {
         auto& btf = registry.getComponent<Transform>(bulletID);
-        float br = registry.getComponent<Bullet>(bulletID).radius;
+        auto& bullet = registry.getComponent<Bullet>(bulletID);
+        float br = bullet.radius;
 
         for (EntityID solidID : solidEntities) {
             // 跳過玩家（自己的子彈不消失在自己身上）
@@ -120,15 +122,27 @@ void CollisionSystem::update(Registry& registry, float /*dt*/) {
             }
 
             if (hit) {
-                toDestroy.push_back(bulletID);
+                bulletsToDestroy.push_back(bulletID);
+
+                if (registry.hasComponent<Health>(solidID)) {
+                    auto& health = registry.getComponent<Health>(solidID);
+                    health.currentHP -= bullet.damage;
+                    if (health.currentHP <= 0.0f) {
+                        entitiesToDestroy.push_back(solidID);
+                    }
+                }
                 break;  // 一個子彈只需要刪一次
             }
         }
     });
 
     // 在 view 迴圈外統一銷毀（避免邊刪邊遍歷的 UB）
-    for (EntityID e : toDestroy) {
-        registry.destroy(e);
+    for (EntityID e : bulletsToDestroy) {
+        if (registry.alive(e)) registry.destroy(e);
+    }
+
+    for (EntityID e : entitiesToDestroy) {
+        if (registry.alive(e)) registry.destroy(e);
     }
 }
 

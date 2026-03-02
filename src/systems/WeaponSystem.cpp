@@ -41,7 +41,9 @@ void WeaponSystem::update(Registry& registry, const Input& input, float dt) {
             registry.addComponent<Bullet>(bullet,
                 dx * wp.bulletSpeed,
                 dy * wp.bulletSpeed,
-                wp.bulletLifetime);
+                wp.bulletLifetime,
+                wp.bulletSize * 0.5f,
+                wp.damage);
 
             // 重置冷卻，防止下幀立刻再射
             wp.cooldown = wp.fireRate;

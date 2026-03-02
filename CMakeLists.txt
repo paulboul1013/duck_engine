@@ -34,6 +34,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 add_executable(test_ecs tests/test_ecs.cpp src/ecs/Registry.cpp)
 target_include_directories(test_ecs PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
-# Collision 幾何函式單元測試（header-only，不需 link .cpp）
-add_executable(test_collision tests/test_collision.cpp)
+# Collision 測試：幾何函式 + Registry/CollisionSystem 整合案例
+add_executable(test_collision
+    tests/test_collision.cpp
+    src/ecs/Registry.cpp
+    src/systems/CollisionSystem.cpp
+)
 target_include_directories(test_collision PRIVATE ${CMAKE_SOURCE_DIR}/src)

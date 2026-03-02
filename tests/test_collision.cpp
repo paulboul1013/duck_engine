@@ -1,8 +1,10 @@
 // tests/test_collision.cpp
-// 單元測試：CollisionSystem 的三個幾何函式
-// 不依賴 OpenGL/SDL2，純數學 CPU 測試
+// 單元測試：CollisionSystem 幾何函式 + 最小傷害流程
+// 不依賴 OpenGL/SDL2，純 CPU 測試
 
 #include "systems/CollisionSystem.h"
+#include "ecs/Components.h"
+#include "ecs/Registry.h"
 #include <cassert>
 #include <cstdio>
 #include <cmath>
@@ -129,6 +131,37 @@ void test_circle_inside_aabb_right_edge() {
 }
 
 // ─────────────────────────────────────────
+// CollisionSystem 整合：Bullet damage
+// ─────────────────────────────────────────
+
+void test_bullet_hits_enemy_and_kills() {
+    duck::Registry reg;
+
+    auto player = reg.create();
+    reg.addComponent<duck::Transform>(player, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f);
+    reg.addComponent<duck::Collider>(player, duck::Collider::Type::Circle, 16.0f, 16.0f, 16.0f, true);
+    reg.addComponent<duck::InputControlled>(player);
+
+    auto enemy = reg.create();
+    reg.addComponent<duck::Transform>(enemy, 30.0f, 0.0f, 0.0f, 1.0f, 1.0f);
+    reg.addComponent<duck::Collider>(enemy, duck::Collider::Type::Circle, 16.0f, 16.0f, 16.0f, true);
+    reg.addComponent<duck::Health>(enemy, 1.0f, 1.0f);
+    reg.addComponent<duck::Enemy>(enemy);
+
+    auto bullet = reg.create();
+    reg.addComponent<duck::Transform>(bullet, 30.0f, 0.0f, 0.0f, 1.0f, 1.0f);
+    reg.addComponent<duck::Bullet>(bullet, 0.0f, 0.0f, 1.0f, 5.0f, 1.0f);
+
+    duck::CollisionSystem system;
+    system.update(reg, 1.0f / 60.0f);
+
+    assert(!reg.alive(bullet));
+    assert(!reg.alive(enemy));
+    assert(reg.alive(player));
+    std::printf("  [PASS] test_bullet_hits_enemy_and_kills\n");
+}
+
+// ─────────────────────────────────────────
 // main
 // ─────────────────────────────────────────
 
@@ -151,6 +184,9 @@ int main() {
     test_circle_aabb_corner_miss();
     test_circle_inside_aabb_left_edge();
     test_circle_inside_aabb_right_edge();
+
+    std::printf("--- Bullet Damage ---\n");
+    test_bullet_hits_enemy_and_kills();
 
     std::printf("\n=== All tests passed! ===\n");
     return 0;

@@ -21,7 +21,7 @@ static uint32_t registerTexture(
 }
 
 bool Engine::init() {
-    if (!m_window.init("Duck Engine - Phase 1", 1280, 720)) return false;
+    if (!m_window.init("Duck Engine - Phase 2", 1280, 720)) return false;
     if (!m_renderer.init(1280, 720)) return false;
 
     setupScene();
@@ -33,7 +33,7 @@ bool Engine::init() {
     std::printf("F1：切換碰撞框 DebugDraw\n");
 
     std::printf("=== Engine 初始化完成 ===\n");
-    std::printf("WASD 移動，滑鼠瞄準，ESC 退出\n");
+    std::printf("WASD 移動，滑鼠瞄準，左鍵射擊，ESC 退出\n");
     return true;
 }
 
@@ -59,8 +59,9 @@ void Engine::setupScene() {
     m_registry.addComponent<Sprite>(player, duckID, 48.0f, 48.0f, 4, 1.0f, 1.0f, 1.0f, 1.0f);
     m_registry.addComponent<RigidBody>(player, 0.0f, 0.0f, 1.0f, 0.85f);
     m_registry.addComponent<InputControlled>(player);
-    m_registry.addComponent<Weapon>(player, bulletID, 900.0f, 0.1f, 0.0f, 2.0f, 10.0f);
+    m_registry.addComponent<Weapon>(player, bulletID, 900.0f, 0.1f, 0.0f, 2.0f, 10.0f, 1.0f);
     m_registry.addComponent<Collider>(player, Collider::Type::Circle, 24.0f, 24.0f, 24.0f, true);
+    m_registry.addComponent<Health>(player, 5.0f, 5.0f);
 
     // -------------------------------------------------------
     // 靜態場景 — Z-Order 0：草地背景
@@ -83,6 +84,25 @@ void Engine::setupScene() {
     m_registry.addComponent<Transform>(rock2, 900.0f, 250.0f, -0.5f, 1.0f, 1.0f);
     m_registry.addComponent<Sprite>(rock2, rockID, 60.0f, 60.0f, 2, 1.0f, 1.0f, 1.0f, 1.0f);
     m_registry.addComponent<Collider>(rock2, Collider::Type::AABB, 30.0f, 30.0f, 30.0f, true);
+
+    // -------------------------------------------------------
+    // 最小版敵人：追逐玩家，可被子彈擊殺
+    // -------------------------------------------------------
+    auto enemy1 = m_registry.create();
+    m_registry.addComponent<Transform>(enemy1, 980.0f, 520.0f, 0.0f, 1.0f, 1.0f);
+    m_registry.addComponent<Sprite>(enemy1, duckID, 42.0f, 42.0f, 4, 0.85f, 0.2f, 0.2f, 1.0f);
+    m_registry.addComponent<RigidBody>(enemy1, 0.0f, 0.0f, 1.0f, 0.88f);
+    m_registry.addComponent<Collider>(enemy1, Collider::Type::Circle, 20.0f, 20.0f, 20.0f, true);
+    m_registry.addComponent<Health>(enemy1, 3.0f, 3.0f);
+    m_registry.addComponent<Enemy>(enemy1);
+
+    auto enemy2 = m_registry.create();
+    m_registry.addComponent<Transform>(enemy2, 210.0f, 180.0f, 0.0f, 1.0f, 1.0f);
+    m_registry.addComponent<Sprite>(enemy2, duckID, 42.0f, 42.0f, 4, 0.85f, 0.2f, 0.2f, 1.0f);
+    m_registry.addComponent<RigidBody>(enemy2, 0.0f, 0.0f, 1.0f, 0.88f);
+    m_registry.addComponent<Collider>(enemy2, Collider::Type::Circle, 20.0f, 20.0f, 20.0f, true);
+    m_registry.addComponent<Health>(enemy2, 3.0f, 3.0f);
+    m_registry.addComponent<Enemy>(enemy2);
 }
 
 void Engine::run() {
@@ -135,6 +155,7 @@ void Engine::run() {
         accumulator += deltaTime;
 
         while (accumulator >= FIXED_DT) {
+            m_enemySystem.update(m_registry, FIXED_DT);
             m_movementSystem.update(m_registry, m_input, FIXED_DT);
             m_weaponSystem.update(m_registry, m_input, FIXED_DT);
             m_collisionSystem.update(m_registry, FIXED_DT);

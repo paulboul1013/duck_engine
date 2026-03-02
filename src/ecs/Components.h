@@ -44,6 +44,10 @@ struct RigidBody {
 // 就能精確篩選出「受玩家控制的、有物理屬性的實體」
 struct InputControlled {};
 
+// 敵人標記元件：最小版 AI 只需要知道「這是敵人」
+// 先不放狀態機資料，等 Phase 3 再擴充為真正的 AI component
+struct Enemy {};
+
 // 武器元件：描述槍枝屬性
 // bulletTextureID：子彈使用的紋理（存 ID 而非指標，熱重載安全）
 // bulletSpeed：子彈飛行速度（像素/秒）
@@ -57,6 +61,7 @@ struct Weapon {
     float cooldown      = 0.0f;
     float bulletLifetime = 2.0f;
     float bulletSize    = 10.0f;
+    float damage        = 1.0f;
 };
 
 // 子彈元件：子彈自己帶速度而非依賴 RigidBody
@@ -68,6 +73,14 @@ struct Bullet {
     float vy = 0.0f;
     float lifetime = 2.0f;  // 剩餘存活時間（秒）
     float radius   = 5.0f;  // 子彈碰撞半徑（像素）
+    float damage   = 1.0f;  // 命中時造成的傷害
+};
+
+// 最小版生命元件
+// currentHP 歸零後由系統刪除 entity
+struct Health {
+    float currentHP = 1.0f;
+    float maxHP = 1.0f;
 };
 
 // 碰撞元件：描述實體的碰撞形狀
