@@ -152,6 +152,29 @@
 - 函式短（10-20 行），inline 不造成程式碼膨脹
 - 編譯器可能直接展開，減少函式呼叫開銷
 
+## Quadtree Broad Phase（Phase 3 起步）
+
+### 為什麼要加 Quadtree
+- 原本 `CollisionSystem` 是先收集所有 solid，再做雙層迴圈全掃，候選配對是 `O(n²)`。
+- 當敵人、障礙物、子彈數量變多時，真正昂貴的不是幾何函式本身，而是「太多其實不可能碰到的組合」。
+- Quadtree 的目的不是取代幾何判定，而是先縮小候選集合，再把候選丟給原本的 `circleVsCircle / aabbVsAabb / circleVsAabb`。
+
+### 目前怎麼接進去
+- `CollisionSystem.cpp` 內新增簡單的 `Bounds`、`SpatialEntry` 與 `Quadtree`，先不做成獨立模組。
+- 每幀先把所有 `Collider.isSolid` 的實體轉成 bounds，建立 Quadtree。
+- **Solid vs Solid**：
+  - 先用每個實體的 bounds 查 Quadtree 候選。
+  - 再用 `testedPairs` 去重，避免 A-B / B-A 重複做精確碰撞。
+- **Bullet vs Solid**：
+  - 先把子彈半徑轉成 bounds。
+  - 用 Quadtree 查附近候選後，再做精確碰撞。
+
+### 目前的取捨
+- Quadtree 目前是 **broad phase only**，narrow phase 幾何函式完全沿用原本實作，風險較低。
+- world bounds 每幀會根據所有 solid 動態計算，這樣不需要先假設固定世界大小。
+- 目前仍是每幀重建 Quadtree，因為實作最簡單，也足夠應付現在專案規模。
+- 目前尚未做 profiler，還不知道在 100+ entity 場景下的實際收益，但邏輯上已先去掉大量無效 pair。
+
 ## 目前專案盤點（更新於 2026-03-02）
 
 ### 目前已經落地的內容
@@ -159,23 +182,23 @@
 - **ECS 已可支撐小型遊戲原型**：`Registry`、`ComponentPool`、`view<...>()`、entity destroy 流程都已完成，且有 `tests/test_ecs.cpp` 驗證。
 - **輸入系統可支援遊玩**：WASD、滑鼠位置、滑鼠按鍵、單幀 key press 都已具備。
 - **渲染主路徑可用**：`Renderer + Shader + SpriteBatch + RenderSystem` 已可畫 sprite，並依 `zOrder` 排序。
-- **玩家 sandbox 可操作**：玩家能移動、朝滑鼠旋轉、左鍵連發子彈。
-- **碰撞核心可用**：玩家會和石頭互推，子彈打到固體會消失，F1 可顯示碰撞框 DebugDraw。
+- **玩家 sandbox 可操作**：玩家能移動、朝滑鼠旋轉、左鍵連發子彈，左上角也已有血條 HUD。
+- **戰鬥 loop 已成立**：敵人可追逐、攻擊玩家，玩家也可用子彈擊殺敵人。
+- **碰撞核心已進入優化版**：玩家會和石頭互推，子彈打到固體會消失，F1 可顯示碰撞框 DebugDraw，broad phase 已改為 Quadtree。
 
 ### 目前還沒完成的部分
-- **沒有敵人實體**：目前場景只有玩家、地面、石頭、子彈，還沒有追逐玩家的敵人。
-- **沒有 Health / Damage 閉環**：雖然規格書列了 `Health`，但程式碼裡尚未實作生命值、受傷、死亡。
-- **沒有 AI 與地圖資料化**：尚未有 `AISystem`、JSON 地圖載入、掉落物、背包、撤離點。
-- **碰撞尚未優化**：`CollisionSystem` 仍是收集 solid 後做 `O(n²)` 比對，還沒進 Quadtree。
+- **沒有資料驅動內容**：尚未有 JSON 地圖載入、掉落物、背包、撤離點。
+- **AI 深度仍低**：雖然已有狀態機，但還沒有遠程攻擊、群體行為、導航或更複雜的決策。
+- **效能驗證還沒做**：Quadtree 已導入，但還沒有壓測與 profiler 證明收益。
 - **資產流程只做了一半**：`Texture::loadFromFile()` 已存在，但 `Engine::setupScene()` 目前仍用 `createSolidColor()` 建立暫時貼圖。
 
 ### 目前程式碼對 Phase 的真實位置
 - **Phase 1 可視為完成**：核心骨架、ECS、輸入、基本渲染都已經到位。
-- **Phase 2 已完成大半**：玩家移動、瞄準、射擊、基礎碰撞都完成。
-- **Phase 2 尚未收尾**：缺最小敵人、扣血、死亡結果，因此還沒有形成真正的戰鬥迴圈。
-- **Phase 3 目前幾乎未開始**：Quadtree、AI 狀態機、資料驅動內容都還沒落地。
+- **Phase 2 已進入後段**：玩家移動、瞄準、射擊、敵我互傷、死亡、HUD 都已成立。
+- **Phase 3 已起步**：AI 狀態機與 Quadtree broad phase 都已落地。
+- **Phase 3 尚未完整展開**：資料驅動內容、武器擴展與更完整 AI 還沒開始。
 
 ### 建議的實作順序
-1. 先補 `Health` 元件與最小傷害流程，讓子彈命中敵人可扣血與刪除實體。
-2. 再做最小版敵人：固定生成 1-2 隻，僅支援追逐玩家，不急著上完整狀態機。
-3. 等戰鬥閉環成立後，再導入 Quadtree 與 JSON 地圖，避免過早優化或過早資料化。
+1. 先對 Quadtree 版本做 profiler / 壓測，確認 broad phase 真的減少候選配對。
+2. 再做敵人攻擊表現與死亡表現，補足戰鬥回饋。
+3. 最後把地圖、敵人配置與資源改成 JSON / 資料驅動。

@@ -5,7 +5,7 @@
 namespace duck {
 
 // ============================================================
-// CollisionSystem — O(n²) 基礎碰撞偵測
+// CollisionSystem — Quadtree broad phase + 精確碰撞 narrow phase
 // ============================================================
 // Phase 2 範圍：
 //   1. Solid vs Solid：計算重疊量 → 互推開（推生）

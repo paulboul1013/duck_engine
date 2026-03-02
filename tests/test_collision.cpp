@@ -200,6 +200,44 @@ void test_enemy_touch_damages_player_once_per_cooldown() {
     std::printf("  [PASS] test_enemy_touch_damages_player_once_per_cooldown\n");
 }
 
+void test_bullet_hits_target_with_many_spatial_entries() {
+    duck::Registry reg;
+
+    auto player = reg.create();
+    reg.addComponent<duck::Transform>(player, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f);
+    reg.addComponent<duck::Collider>(player, duck::Collider::Type::Circle, 16.0f, 16.0f, 16.0f, true);
+    reg.addComponent<duck::InputControlled>(player);
+
+    for (int i = 0; i < 24; ++i) {
+        auto wall = reg.create();
+        float x = static_cast<float>((i % 6) * 180 - 450);
+        float y = static_cast<float>((i / 6) * 140 - 280);
+        reg.addComponent<duck::Transform>(wall, x, y, 0.0f, 1.0f, 1.0f);
+        reg.addComponent<duck::Collider>(wall, duck::Collider::Type::AABB, 22.0f, 22.0f, 22.0f, true);
+    }
+
+    auto enemy = reg.create();
+    reg.addComponent<duck::Transform>(enemy, 240.0f, 180.0f, 0.0f, 1.0f, 1.0f);
+    reg.addComponent<duck::Collider>(enemy, duck::Collider::Type::Circle, 18.0f, 18.0f, 18.0f, true);
+    reg.addComponent<duck::Health>(enemy, 1.0f, 1.0f);
+    reg.addComponent<duck::RigidBody>(enemy, 0.0f, 0.0f, 1.0f, 0.9f);
+    reg.addComponent<duck::Enemy>(enemy, duck::Enemy{});
+
+    auto bullet = reg.create();
+    reg.addComponent<duck::Transform>(bullet, 240.0f, 180.0f, 0.0f, 1.0f, 1.0f);
+    reg.addComponent<duck::Bullet>(bullet, 0.0f, 0.0f, 1.0f, 5.0f, 1.0f);
+
+    duck::CollisionSystem collisionSystem;
+    duck::EnemySystem enemySystem;
+    collisionSystem.update(reg, 1.0f / 60.0f);
+    enemySystem.update(reg, 1.0f / 60.0f);
+
+    assert(!reg.alive(bullet));
+    assert(reg.alive(enemy));
+    assert(reg.getComponent<duck::Enemy>(enemy).state == duck::Enemy::State::Dead);
+    std::printf("  [PASS] test_bullet_hits_target_with_many_spatial_entries\n");
+}
+
 // ─────────────────────────────────────────
 // main
 // ─────────────────────────────────────────
@@ -227,6 +265,7 @@ int main() {
     std::printf("--- Bullet Damage ---\n");
     test_bullet_hits_enemy_and_kills();
     test_enemy_touch_damages_player_once_per_cooldown();
+    test_bullet_hits_target_with_many_spatial_entries();
 
     std::printf("\n=== All tests passed! ===\n");
     return 0;
